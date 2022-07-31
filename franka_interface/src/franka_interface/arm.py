@@ -50,6 +50,9 @@ from franka_core_msgs.msg import RobotState, EndPointState
 #wkdo - for Error recovery code
 import franka_msgs.msg
 from franka_core_msgs.msg import Cartesian_stiffness
+# for pose stamp
+from geometry_msgs.msg import PoseStamped, Wrench
+
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
@@ -842,6 +845,27 @@ class ArmInterface(object):
 
 
     #wkdo
+    def convertToList(self, dic):
+        """
+        convert dict to list for joint info
+        """
+        l = []
+        sorted_keys = sorted(dic.keys())
+        for i in sorted_keys:
+            l.append(dic[i])
+        return l
+
+    #wkdo 
+    def convertToDict(self, lis):
+        """
+        convert list to dict for joint info
+        """
+        d = dict()
+        for i in range(len(lis)):
+            d['panda_joint{}'.format(i+1)] = lis[i]
+        return d
+
+    #wkdo
     def reset_cmd(self):
         """
         reset the robot controller by publishing reset code
@@ -873,7 +897,7 @@ class ArmInterface(object):
     def set_cartesian_impedance_pose(self, pos, stiffness = None):
         """
         Move robot end-effector to cartesian pose, without using MoveIt! and using impedance control
-        pos: target end-effector position
+        pos: target end-effector position 
         implemented from franka_ros_interface
         """
         #
@@ -891,8 +915,20 @@ class ArmInterface(object):
             stiff_gains.z_rot = stiffness[5]
             self._cartesian_impedance_stiffness_publisher.publish(stiff_gains)
             
+        end_pose = PoseStamped()
+        end_pose.pose.position.x = pos['position'][0]
+        end_pose.pose.position.y = pos['position'][1]
+        end_pose.pose.position.z = pos['position'][2]
+        end_pose.pose.orientation.x = pos['orientation'].x
+        end_pose.pose.orientation.y = pos['orientation'].y
+        end_pose.pose.orientation.z = pos['orientation'].z
+        end_pose.pose.orientation.w = pos['orientation'].w
+        self._cartesian_impedance_pose_publisher.publish(end_pose)
 
-
+        #wait until motion complete
+        rospy.sleep(0.1)
+        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
+            rospy.sleep(0.1)
 
 
     def move_to_cartesian_pose(self, pos, ori=None, use_moveit=True):
