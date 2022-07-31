@@ -90,6 +90,7 @@ def _rosparam_controller_type(ctrls_ns, ctrl_name):
     type_param = _append_ns(ctrls_ns, ctrl_name) + '/type'
     return rospy.get_param(type_param)
 
+# wkdo if you want to add controller name from rosparam server, add here: 
 def _get_controller_name_from_rosparam_server(rosparam_name):
     try:
         cname = rospy.get_param(rosparam_name)
@@ -184,6 +185,7 @@ class FrankaControllerManagerInterface(object):
 
         self._controller_lister = ControllerLister(self._cm_ns)
 
+        # wkdo add impedance controller on here? don't have to? 
         self._controller_names_from_rosparam = {
             'joint_position_controller': _get_controller_name_from_rosparam_server('/controllers_config/position_controller'),
             'joint_velocity_controller': _get_controller_name_from_rosparam_server('/controllers_config/velocity_controller'),
@@ -598,6 +600,33 @@ class FrankaControllerManagerInterface(object):
         if self._in_sim:
             return self.joint_position_controller
         return self._controller_names_from_rosparam['joint_trajectory_controller']
+
+    #wkdo - add joint impedance controllers 
+    @property
+    def effort_joint_torque_controller(self):
+        return self._ns[1:] + "/effort_joint_torque_controller"    
+    @property
+    def effort_joint_impedance_controller(self):
+        return self._ns[1:] + "/effort_joint_impedance_controller"   
+    @property
+    def effort_joint_position_controller(self):
+        return self._ns[1:] + "/effort_joint_position_controller"
+
+    @property
+    def force_controller(self):
+        return self._ns[1:] + "/force_controller"
+    @property
+    def ntorque_controller(self):
+        return self._ns[1:] + "/ntorque_controller"
+    @property
+    def joint_impedance_controller(self):
+        return self._ns[1:] + "/joint_impedance_controller"
+    @property
+    def cartesian_impedance_controller(self):
+        return self._ns[1:] + "/cartesian_impedance_controller"
+
+
+
 
     @property
     def current_controller(self):

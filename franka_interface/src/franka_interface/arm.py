@@ -46,6 +46,8 @@ from franka_core_msgs.msg import JointCommand
 from franka_core_msgs.msg import RobotState, EndPointState
 
 #wkdo- For impedance control
+#wkdo - for Error recovery code
+import franka_msgs.msg
 
 
 from sensor_msgs.msg import JointState
@@ -167,6 +169,7 @@ class ArmInterface(object):
             rospy.loginfo("{}: Collision Service Not found. It will not be possible to change collision behaviour of robot!".format(
                 self.__class__.__name__))
             self._collision_behaviour_interface = None
+            
         self._ctrl_manager = FrankaControllerManagerInterface(
             ns=self._ns, sim=self._params._in_sim)
 
@@ -825,6 +828,51 @@ class ArmInterface(object):
         new_pos = pos - new_ori.dot(F_T_EE[:3, 3])
 
         return new_pos, quaternion.from_rotation_matrix(new_ori)
+
+
+    #wkdo
+    def reset_cmd(self):
+        """
+        reset the robot controller by publishing reset code
+        """
+        rospy.sleep(0.5)
+        pub_reset = rospy.Publisher('/franka_ros_interface/franka_control/error_recovery/goal', franka_msgs.msg.ErrorRecoveryActionGoal, queue_size=10)
+        rospy.sleep(0.5)
+        pub_reset.publish(franka_msgs.msg.ErrorRecoveryActionGoal())
+        rospy.loginfo("error recoversy code sent")
+
+
+    #wkdo 
+    def switch_controller(self, ctrl_name):
+        """
+        modularizing controller start session
+        switch controller seamlessly from active controller list
+        adapted from franka_ros_interface
+        """
+        active_controllers = self._ctrl_manager.list_active_controllers(only_motion_controllers=True)
+        for ctrler in active_controllers: 
+            self._ctrl_manager.stop_controller(ctrler.name)
+            rospy.loginfo("Stop controller that is active: %s" %ctrler.name)
+            rospy.sleep(0.5)
+        if not self._ctrl_manager.is_loaded(ctrl_name):
+            self._ctrl_manager.load_controller(ctrl_name)
+        self._ctrl_manager.start_controller(ctrl_name)
+    
+    #wkdo
+    def set_cartesian_impedance_pose(self, pos, stiffness = None):
+        """
+        Move robot end-effector to cartesian pose, without using MoveIt! and using impedance control
+        pos: target end-effector position
+        implemented from franka_ros_interface
+        """
+        #
+        if self._ctrl_manager.current_controller != self._ctrl_manager.cartesian_impedance_controller:
+            self.switch_controller(self._ctrl_manager.cartesian_impedance_controller)
+        
+
+
+
+
 
     def move_to_cartesian_pose(self, pos, ori=None, use_moveit=True):
         """
