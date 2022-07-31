@@ -31,7 +31,8 @@
    For additional change, refer comment #wkdo
 """
 
-from builtins import dict # for python2&3 efficient compatibility
+from builtins import dict
+from turtle import st # for python2&3 efficient compatibility
 from future.utils import iteritems # for python2&3 efficient compatibility
 
 import enum
@@ -48,7 +49,7 @@ from franka_core_msgs.msg import RobotState, EndPointState
 #wkdo- For impedance control
 #wkdo - for Error recovery code
 import franka_msgs.msg
-
+from franka_core_msgs.msg import Cartesian_stiffness
 
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
@@ -169,7 +170,7 @@ class ArmInterface(object):
             rospy.loginfo("{}: Collision Service Not found. It will not be possible to change collision behaviour of robot!".format(
                 self.__class__.__name__))
             self._collision_behaviour_interface = None
-            
+
         self._ctrl_manager = FrankaControllerManagerInterface(
             ns=self._ns, sim=self._params._in_sim)
 
@@ -214,6 +215,11 @@ class ArmInterface(object):
             queue_size=1,
             tcp_nodelay=True)
 
+        #wkdo publisher for cartesian impedance controller
+        self._cartesian_impedance_pose_publisher = rospy.Publisher("impedance_pose", PoseStamped, queue_size= 10)
+        self._cartesian_impedance_stiffness_publisher = rospy.Publisher("impedance_stiffness", Cartesian_stiffness, queue_size= 10)
+
+
         rospy.on_shutdown(self._clean_shutdown)
 
         err_msg = ("%s arm init failed to get current joint_states "
@@ -248,6 +254,11 @@ class ArmInterface(object):
         self._pub_joint_cmd_timeout.unregister()
         self._robot_state_subscriber.unregister()
         self._joint_command_publisher.unregister()
+
+        #wkdo add impedance publisher
+        self._cartesian_impedance_pose_publisher.unregister()
+        self._cartesian_impedance_stiffness_publisher.unregister()
+
 
     def get_movegroup_interface(self):
         """
@@ -869,7 +880,17 @@ class ArmInterface(object):
         if self._ctrl_manager.current_controller != self._ctrl_manager.cartesian_impedance_controller:
             self.switch_controller(self._ctrl_manager.cartesian_impedance_controller)
         
-
+        if stiffness is not None:
+            # make new message format
+            stiff_gains = Cartesian_stiffness()
+            stiff_gains.x = stiffness[0]
+            stiff_gains.y = stiffness[1]
+            stiff_gains.z = stiffness[2]
+            stiff_gains.x_rot = stiffness[3]
+            stiff_gains.y_rot = stiffness[4]
+            stiff_gains.z_rot = stiffness[5]
+            self._cartesian_impedance_stiffness_publisher.publish(stiff_gains)
+            
 
 
 
