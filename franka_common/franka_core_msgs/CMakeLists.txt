@@ -19,6 +19,7 @@ add_message_files( DIRECTORY msg
         EndPointState.msg
         JointLimits.msg
         JointControllerStates.msg
+        Cartesian_stiffness.msg
 )
 
 # add_service_files( DIRECTORY srv

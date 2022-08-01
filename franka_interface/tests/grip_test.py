@@ -1,51 +1,110 @@
-#! /usr/bin/env python
+#!/usr/bin/env python
+
+# /***************************************************************************
+
+# 
+# @package: franka_interface
+# @metapackage: franka_ros_interface
+# @author: Saif Sidhik <sxs1412@bham.ac.uk>
+# 
+
+# **************************************************************************/
+
+# /***************************************************************************
+# Copyright (c) 2019-2021, Saif Sidhik
+ 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# **************************************************************************/
+
+
+"""
+:info: 
+   NOTE: Running this script without any arguments will stop the current command being 
+         sent to the gripper. Use this to stop any dangerous action being run
+   Utility script for simple gripper motion.
+     Usage:
+        python simple_gripper.py <arg>
+
+     @Args:
+         <No arg>          : Stop current gripper action
+         -o (--open)       : optional argument to make the gripper release and go to max width 
+         -c (--close)      : optional argument to close the gripper 
+         -p (--pos)        : optional position controller, get value
+
+"""
+
 
 import rospy
-import copy
-import IPython
-import numpy
-from franka_interface import ArmInterface 
+import argparse
+import actionlib
 
-def gripRecord(gripForce, iteration=0, recordTime=10):
-    rospy.init_node('netft_node') #TODO needed?
+from franka_interface import GripperInterface
+from franka_gripper.msg import ( StopAction, StopGoal )
 
-    zeroFTSensor()
-    rospy.sleep(2)
+def _active_cb():
+    rospy.loginfo("GripperInterface: '{}' request active.".format(_caller))
 
-    # Create a folder for the bag
-    bagName = 'f{}_i{}'.format(gripForce, iteration)
-    dir_save_bagfile = 'gripTests/'
-    if not os.path.exists(dir_save_bagfile):
-        os.makedirs(dir_save_bagfile)
+def _feedback_cb(msg):
+    rospy.loginfo("GripperInterface: '{}' request feedback: \n\t{}".format(_caller,msg))
 
-    topics = ["/netft/netft_data"]
-    subprocess.Popen('rosbag record -q -O {} {}'.format(bagName, " ".join(topics)), shell=True, cwd=dir_save_bagfile)   
-    rospy.sleep(1)
-    #hand.Grasp() TODO
-    rospy.sleep(recordTime)
-        
-    # Stop recording rosbag
-    terminate_ros_node("/record")
-    rospy.sleep(1)
-    #hand.Open() TODO
+def _done_cb(status, result):
+    rospy.loginfo("GripperInterface: '{}' complete. Result: \n\t{}".format(_caller, result))
 
-def zeroFTSensor():
-    zeroSensorRos = rospy.ServiceProxy('/netft/zero', srv.Zero)
-    rospy.wait_for_service('/netft/zero', timeout=0.5)
-    zeroSensorRos()
+class Range(object):
+    def __init__(self, start, end):
+        self.start = start
+        self.end = end
 
-def terminate_ros_node(s):
-    list_cmd = subprocess.Popen("rosnode list", shell=True, stdout=subprocess.PIPE)
-    list_output = list_cmd.stdout.read()
-    retcode = list_cmd.wait()
-    assert retcode == 0, "List command returned %d" % retcode
-    for string in list_output.split("\n"):
-        if string.startswith(s):
-            os.system("rosnode kill " + string)
+    def __eq__(self, other):
+        return self.start <= other <= self.end
+
+    def __contains__(self, item):
+        return self.__eq__(item)
+
+    def __iter__(self):
+        yield self
 
 if __name__ == '__main__':
-    rospy.init_node("grip_tests")
-    realarm = ArmInterface()
-    q0 = realarm.joint_angles()
+    
+    rospy.init_node("gripper_stop_node")
 
-    IPython.embed()
+    _caller = "stop_gripper"
+    stop_action_client = actionlib.SimpleActionClient("/franka_gripper/stop", StopAction)
+    stop_action_client.wait_for_server()
+
+    stop_action_client.send_goal(StopGoal(), done_cb =_done_cb, active_cb = _active_cb, feedback_cb = _feedback_cb)
+
+    result = stop_action_client.wait_for_result(rospy.Duration(15.))
+
+    parser = argparse.ArgumentParser("Stop current gripper action; Open or close gripper.")
+
+    gripper_group = parser.add_mutually_exclusive_group(required=False)
+    gripper_group.add_argument("-o", "--open", dest="open",
+        action='store_true', default=False, help="open gripper")
+    gripper_group.add_argument("-c", "--close", dest="close",
+        action='store_true', default=False, help="close gripper")
+    gripper_group.add_argument("-p", "--pos", type=float, choices = [Range(0.0001, 0.2)])
+    args = parser.parse_args(rospy.myargv()[1:])
+
+    if args.open:
+        print("open")
+        gi = GripperInterface()
+        gi.open()
+    if args.close:
+        print("close")
+        gi = GripperInterface()
+        gi.close()
+    if args.pos:
+        gi = GripperInterface()
+        print(args.pos)
+        gi.move_joints(args.pos)
