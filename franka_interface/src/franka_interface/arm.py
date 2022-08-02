@@ -1017,9 +1017,11 @@ class ArmInterface(object):
 
 
 #wkdo 
-    def set_joint_positions_velocities(self, positions, velocities):
+    def set_joint_posvel_with_impedance(self, positions, velocities, stiffness):
         """
         Commands the joints of this limb using specified positions and velocities using impedance control.
+        
+        How to set up the impedance stiffness here? 
         Command at time t is computed as:
 
         :math:`u_t= coriolis\_factor * coriolis\_t + K\_p * (positions - curr\_positions) +  K\_d * (velocities - curr\_velocities)`

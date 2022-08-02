@@ -45,7 +45,7 @@ if __name__ == '__main__':
             print(vals, delta)
             print("\n ----  \n")
             print(" ")
-
+        
 
         # r.set_joint_positions_velocities(vals, [0.0 for _ in range(7)]) # for impedance control
         r.set_joint_positions(dict(zip(r.joint_names(), vals))) # try this for position control 

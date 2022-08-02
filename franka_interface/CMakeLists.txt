@@ -134,6 +134,7 @@ catkin_install_python(PROGRAMS scripts/enable_robot.py
                                tests/test_impedance.py
                                tests/test_grasp.py
                                tests/grip_test.py
+                               tests/demo_record.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 # ## Tools
 # include(${CMAKE_CURRENT_LIST_DIR}/../cmake/ClangTools.cmake OPTIONAL

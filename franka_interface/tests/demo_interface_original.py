@@ -1,20 +1,16 @@
 import rospy
 import numpy as np
 from franka_interface import ArmInterface
-import IPython
+
 """
 :info:
-    Move robot using low-level controllers
-
-    1. record the joint position without selecting velocity with joint impedance control 
-
-    ## how to set up the impedance stiffness on here ?    
+    Demo showing ways to use API. Also shows how to move the robot using low-level controllers.
 
     WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
 """
 
 if __name__ == '__main__':
-    rospy.init_node("path_recording")
+    rospy.init_node("test_robot")
     r = ArmInterface() # create arm interface instance (see https://justagist.github.io/franka_ros_interface/DOC.html#arminterface for all available methods for ArmInterface() object)
     cm = r.get_controller_manager() # get controller manager instance associated with the robot (not required in most cases)
     mvt = r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners (see https://justagist.github.io/franka_ros_interface/DOC.html#franka_moveit.PandaMoveGroupInterface for documentation)
