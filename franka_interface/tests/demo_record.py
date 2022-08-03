@@ -29,6 +29,8 @@ class Record(object):
         self.period = rospy.Duration(0.005)
         initial_pose = self.r.joint_angles() # get current joint angles of the robot
 
+        self.reset_flag == False 
+
         jac = self.r.zero_jacobian() # get end-effector jacobian
 
         count = 0
@@ -46,7 +48,6 @@ class Record(object):
                                      on_release=self.on_release)
         listener.start()
         
-
 
         
         rospy.loginfo("start recording...\n")
@@ -74,8 +75,16 @@ class Record(object):
 
                 # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
                 self.r.set_joint_positions_velocities([self.vals[j] for j in self.joint_names], [0.0]*7) # for impedance control
+
+                if self.reset_flag == True: 
+                    # The collision, though desirable, triggers a cartesian reflex error. We need to reset that error
+                    # if self.r._robot_mode == 4:
+                    #     self.r.reset_cmd()
+                    self.r.reset_cmd()
+
                 self.rate.sleep()
-        
+
+
 
     # def on_press(self, keyname):
     #     """handler for keyboard listener"""
@@ -147,11 +156,11 @@ class Record(object):
 
     def on_press(self, key):
         try:
-            # print('alphanumeric key {0} pressed'.format(
-            #     key.char))
+            print('alphanumeric key {0} pressed'.format(key.char))
             if key.char == 'q':
                 print('alphanumeric key {0} pressed'.format(key.char))
-                self.r.reset_cmd()
+                self.reset_flag = True
+                # self.r.reset_cmd()
         except AttributeError:
             print('special key {0} pressed'.format(
                 key))

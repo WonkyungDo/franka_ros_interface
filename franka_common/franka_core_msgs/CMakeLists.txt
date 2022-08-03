@@ -20,6 +20,8 @@ add_message_files( DIRECTORY msg
         JointLimits.msg
         JointControllerStates.msg
         Cartesian_stiffness.msg
+        JointImpedanceCommand.msg
+        JointImpedanceStiffness.msg
 )
 
 # add_service_files( DIRECTORY srv

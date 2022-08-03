@@ -50,8 +50,13 @@ from franka_core_msgs.msg import RobotState, EndPointState
 #wkdo - for Error recovery code
 import franka_msgs.msg
 from franka_core_msgs.msg import Cartesian_stiffness
-# for pose stamp
+
+#wkdo - for impedance msgs
+from franka_core_msgs.msg import JointImpedanceCommand, JointImpedanceStiffness
+
+#wkdo for pose stamp
 from geometry_msgs.msg import PoseStamped, Wrench
+
 
 
 from sensor_msgs.msg import JointState
@@ -222,6 +227,11 @@ class ArmInterface(object):
         self._cartesian_impedance_pose_publisher = rospy.Publisher("impedance_pose", PoseStamped, queue_size= 10)
         self._cartesian_impedance_stiffness_publisher = rospy.Publisher("impedance_stiffness", Cartesian_stiffness, queue_size= 10)
 
+        #wkdo publisher for joint traj impedance controller 
+        self._joint_impedance_publisher = rospy.Publisher("joint_impedance_position_velocity", JointImpedanceCommand, queue_size=20)
+        self._joint_stiffness_publisher = rospy.Publisher("joint_impedance_stiffness", JointImpedanceStiffness, queue_size=10) 
+
+    
 
         rospy.on_shutdown(self._clean_shutdown)
 
@@ -261,6 +271,8 @@ class ArmInterface(object):
         #wkdo add impedance publisher
         self._cartesian_impedance_pose_publisher.unregister()
         self._cartesian_impedance_stiffness_publisher.unregister()
+        self._joint_impedance_publisher.unregister()
+        self._joint_stiffness_publisher.unregister()
 
 
     def get_movegroup_interface(self):
@@ -929,6 +941,47 @@ class ArmInterface(object):
         rospy.sleep(0.1)
         while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
             rospy.sleep(0.1)
+
+    # wkdo
+    def set_joint_impedance_pose(self, joint_list, stiffness = None):
+        """
+        Move robot with given joint trajectory! 
+        joint_list : type - list, get the all joint information for impedance control with manipulating stiffness on our own
+
+
+        """
+        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
+            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+
+        if stiffness is not None:
+            stiff_gain = JointImpedanceStiffness()
+            stiff_gain = stiffness
+            self._joint_impedance_publisher.publish(stiff_gain)
+
+        poseinfo = JointImpedanceCommand()
+        poseinfo.position = joint_list
+        poseinfo.velocity = [0.003] * 7
+        self._joint_impedance_publisher.publish(poseinfo)
+
+        #wait until motion complete
+        rospy.sleep(0.1)
+        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
+            rospy.sleep(0.1)
+
+
+    def exec_joint_impedance_trajectory(self, jlists, stiffness = None):
+        """
+        execute joint impedance trajectory controller.
+        jlists : list of joint inputs.  
+        """
+        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
+            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+
+        for i in range(len(jlists)):
+            self.set_joint_impedance_pose(jlists[i], stiffness)
+            # include reset code here in case the list doesn't exist
+            if i ==0: 
+                self.reset_cmd()
 
 
     def move_to_cartesian_pose(self, pos, ori=None, use_moveit=True):
