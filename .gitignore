@@ -56,4 +56,6 @@ srv_gen
 */src/**/cfg
 */*/src/**/*
 
+settings.json
+
 franka_interface/scripts/test.py

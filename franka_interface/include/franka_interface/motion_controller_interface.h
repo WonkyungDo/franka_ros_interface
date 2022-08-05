@@ -70,6 +70,10 @@ namespace franka_interface {
     std::string torque_controller_name_;
     std::string impedance_controller_name_;
     std::string trajectory_controller_name_;
+    
+    std::string cartesian_impedance_controller_name_;
+    std::string joint_impedance_controller_name_;
+
 
     std::string default_controller_name_;
     std::string current_controller_name_;

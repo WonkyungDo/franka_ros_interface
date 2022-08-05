@@ -54,6 +54,14 @@ void MotionControllerInterface::init(ros::NodeHandle& nh,
         default_controller_name_ = "position_joint_trajectory_controller";
     }
 
+  if (!nh.getParam("/controllers_config/joint_impedance_controller", joint_impedance_controller_name_)) {
+        joint_impedance_controller_name_ = "joint_impedance_controller";
+    }
+  if (!nh.getParam("/controllers_config/cartesian_impedance_controller", cartesian_impedance_controller_name_)) {
+        cartesian_impedance_controller_name_ = "cartesian_impedance_controller";
+   }
+
+
   current_controller_name_ = default_controller_name_;
 
   all_controllers_.clear();
@@ -62,6 +70,10 @@ void MotionControllerInterface::init(ros::NodeHandle& nh,
   all_controllers_.push_back(impedance_controller_name_);
   all_controllers_.push_back(velocity_controller_name_);
   all_controllers_.push_back(trajectory_controller_name_);
+
+  all_controllers_.push_back(joint_impedance_controller_name_);
+  all_controllers_.push_back(cartesian_impedance_controller_name_);
+
 
   bool default_defined = false;
 
@@ -77,6 +89,10 @@ void MotionControllerInterface::init(ros::NodeHandle& nh,
   controller_name_to_mode_map_[impedance_controller_name_] = franka_core_msgs::JointCommand::IMPEDANCE_MODE;
   controller_name_to_mode_map_[velocity_controller_name_] = franka_core_msgs::JointCommand::VELOCITY_MODE;
   controller_name_to_mode_map_[trajectory_controller_name_] = -1;
+
+
+  controller_name_to_mode_map_[joint_impedance_controller_name_] = -1;
+  controller_name_to_mode_map_[cartesian_impedance_controller_name_] = -1;
 
   if (! default_defined){
     ROS_ERROR_STREAM_NAMED("MotionControllerInterface", "Default controller not present in the provided controllers!");
@@ -168,6 +184,10 @@ bool MotionControllerInterface::switchControllers(int control_mode) {
         stop_controllers.push_back(torque_controller_name_);
         stop_controllers.push_back(velocity_controller_name_);
         stop_controllers.push_back(trajectory_controller_name_);
+
+        stop_controllers.push_back(joint_impedance_controller_name_);
+        stop_controllers.push_back(cartesian_impedance_controller_name_);
+
         break;
       case franka_core_msgs::JointCommand::IMPEDANCE_MODE:
         start_controllers.push_back(impedance_controller_name_);
@@ -175,6 +195,9 @@ bool MotionControllerInterface::switchControllers(int control_mode) {
         stop_controllers.push_back(torque_controller_name_);
         stop_controllers.push_back(velocity_controller_name_);
         stop_controllers.push_back(trajectory_controller_name_);
+
+        stop_controllers.push_back(joint_impedance_controller_name_);
+        stop_controllers.push_back(cartesian_impedance_controller_name_);
         break;
       case franka_core_msgs::JointCommand::TORQUE_MODE:
         start_controllers.push_back(torque_controller_name_);
@@ -182,6 +205,9 @@ bool MotionControllerInterface::switchControllers(int control_mode) {
         stop_controllers.push_back(impedance_controller_name_);
         stop_controllers.push_back(velocity_controller_name_);
         stop_controllers.push_back(trajectory_controller_name_);
+
+        stop_controllers.push_back(joint_impedance_controller_name_);
+        stop_controllers.push_back(cartesian_impedance_controller_name_);        
         break;
       case franka_core_msgs::JointCommand::VELOCITY_MODE:
         start_controllers.push_back(velocity_controller_name_);
@@ -189,6 +215,9 @@ bool MotionControllerInterface::switchControllers(int control_mode) {
         stop_controllers.push_back(impedance_controller_name_);
         stop_controllers.push_back(torque_controller_name_);
         stop_controllers.push_back(trajectory_controller_name_);
+
+        stop_controllers.push_back(joint_impedance_controller_name_);
+        stop_controllers.push_back(cartesian_impedance_controller_name_);
         break;        
       default:
         ROS_ERROR_STREAM_NAMED("MotionControllerInterface", "Unknown JointCommand mode "

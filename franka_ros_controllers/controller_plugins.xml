@@ -34,4 +34,19 @@
       Controller for commanding joint velocity of the Franka arm using internal joint velocity controller
     </description>
   </class> 
+  <class name="franka_ros_controllers/CartesianImpedanceController"
+         type="franka_ros_controllers::CartesianImpedanceController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Controller for cartesian impedance controller using force from franka arm
+    </description>
+  </class>
+  <class name="franka_ros_controllers/JointImpedanceController"
+         type="franka_ros_controllers::JointImpedanceController"
+         base_class_type="controller_interface::ControllerBase">
+    <description>
+      Controller for joint impedance controller using force from franka arm
+    </description>
+  </class>
+
 </library>

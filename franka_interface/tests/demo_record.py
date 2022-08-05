@@ -78,7 +78,7 @@ class Record(object):
         """
         while not rospy.is_shutdown():
             
-            if self.record_flag is 1:
+            if self.record_flag == 1:
                 p2 = self.r.endpoint_pose()
                 q1 = self.r.joint_angles()
                 self.result.append(self.r.convertToList(q1))
@@ -98,8 +98,8 @@ class Record(object):
         """
         self.recorded = np.load('record.npy')
         print(self.recorded)
-        if len(self.recorded) != 0:
-
+        if len(self.recorded) != 0 :
+            print("see")
             self.r.exec_joint_impedance_trajectory(self.recorded)
         else: 
             rospy.loginfo("trajectory not detected")
@@ -140,7 +140,7 @@ class Record(object):
     def gripRecord(self, gripForce, iteration=0, recordTime=10):
         rospy.init_node('netft_node') #TODO needed?
 
-        zeroFTSensor()
+        self.zeroFTSensor()
         rospy.sleep(2)
 
         # Create a folder for the bag
@@ -156,7 +156,7 @@ class Record(object):
         rospy.sleep(recordTime)
 
         # Stop recording rosbag
-        terminate_ros_node("/record")
+        self.terminate_ros_node("/record")
         rospy.sleep(1)
         #hand.Open() TODO
 
