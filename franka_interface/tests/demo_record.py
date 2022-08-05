@@ -2,6 +2,9 @@ import rospy
 import numpy as np
 from franka_interface import ArmInterface
 from pynput import mouse, keyboard
+import subprocess
+import os
+
 """
 :info:
     
@@ -25,12 +28,18 @@ class Record(object):
         self.cm = self.r.get_controller_manager() # get controller manager instance associated with the robot (not required in most cases)
         self.mvt = self.r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners (see https://justagist.github.io/franka_ros_interface/DOC.html#franka_moveit.PandaMoveGroupInterface for documentation)
 
+        self.frames = self.r.get_frames_interface() # get the frame interface for getting ee frame and calculate transformation
+
+        # example: self.frames.set_EE_frame([1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1])
+
+
         self.elapsed_time_ = rospy.Duration(0.0)
         self.period = rospy.Duration(0.005)
-        initial_pose = self.r.joint_angles() # get current joint angles of the robot
+        self.initial_pose = self.r.joint_angles() # get current joint angles of the robot
 
-        self.reset_flag == False 
-
+        self.reset_flag = False 
+        self.record_flag = 0
+ 
         jac = self.r.zero_jacobian() # get end-effector jacobian
 
         count = 0
@@ -41,9 +50,11 @@ class Record(object):
 
         rospy.sleep(1)
         
+        self.result = []
+        self.recorded = []
+
+
         # self.init_keyboard()
-
-
         listener = keyboard.Listener(on_press=self.on_press,
                                      on_release=self.on_release)
         listener.start()
@@ -54,37 +65,114 @@ class Record(object):
         val = input("integer anything : \n")
         print(val)
         if int(val) == 1: 
-            self.r.move_to_neutral() # move robot to neutral pose
+            self.test_moverobot()
+        if int(val) == 2:
+            self.test_record()
+        if int(val) == 3:
+            self.test_execute_traj()
 
-            while not rospy.is_shutdown():
-                # if keyboard.press('q'):
-                #     print("reset pressed")
-                #     # break
-                #     r.reset_cmd
-                self.elapsed_time_ += self.period
-                # self.time = self.elapsed_time_.to_sec()
-                print(self.elapsed_time_) #48420000000  48425000000  48430000000
+    def test_record(self):
+        """
+        record joint angles and velocity? or just angles? 
+        and save on the npy file 
+        """
+        while not rospy.is_shutdown():
+            
+            if self.record_flag is 1:
+                p2 = self.r.endpoint_pose()
+                q1 = self.r.joint_angles()
+                self.result.append(self.r.convertToList(q1))
 
-                delta = 3.14 / 16.0 * (1 - np.cos(3.14 / 5.0 * self.elapsed_time_.to_sec())) * 0.1
-
-                for j in self.joint_names:
-                    if j == self.joint_names[3]:
-                        self.vals[j] = initial_pose[j] - delta
-                    else:
-                        self.vals[j] = initial_pose[j] + delta
-
-                # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
-                self.r.set_joint_positions_velocities([self.vals[j] for j in self.joint_names], [0.0]*7) # for impedance control
-
-                if self.reset_flag == True: 
-                    # The collision, though desirable, triggers a cartesian reflex error. We need to reset that error
-                    # if self.r._robot_mode == 4:
-                    #     self.r.reset_cmd()
-                    self.r.reset_cmd()
-
-                self.rate.sleep()
+                self.record_flag = 0
+            else:
+                rospy.sleep(0.3)
+            if self.record_flag == 2:
+               with open ('record.npy', 'wb') as f:
+                    np.save(f, self.result)
 
 
+
+    def test_execute_traj(self):
+        """
+        execute trajectory 
+        """
+        self.recorded = np.load('record.npy')
+        print(self.recorded)
+        if len(self.recorded) != 0:
+
+            self.r.exec_joint_impedance_trajectory(self.recorded)
+        else: 
+            rospy.loginfo("trajectory not detected")
+        
+
+    def test_moverobot(self):
+        self.r.move_to_neutral() # move robot to neutral pose
+
+        while not rospy.is_shutdown():
+            # if keyboard.press('q'):
+            #     print("reset pressed")
+            #     # break
+            #     r.reset_cmd
+            self.elapsed_time_ += self.period
+            # self.time = self.elapsed_time_.to_sec()
+            print(self.elapsed_time_) #48420000000  48425000000  48430000000
+
+            delta = 3.14 / 16.0 * (1 - np.cos(3.14 / 5.0 * self.elapsed_time_.to_sec())) * 0.1
+
+            for j in self.joint_names:
+                if j == self.joint_names[3]:
+                    self.vals[j] = self.initial_pose[j] - delta
+                else:
+                    self.vals[j] = self.initial_pose[j] + delta
+
+            # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
+            self.r.set_joint_positions_velocities([self.vals[j] for j in self.joint_names], [0.0]*7) # for impedance control
+
+            if self.reset_flag == True: 
+                # The collision, though desirable, triggers a cartesian reflex error. We need to reset that error
+                # if self.r._robot_mode == 4:
+                #     self.r.reset_cmd()
+                self.r.reset_cmd()
+
+            self.rate.sleep()
+
+
+    def gripRecord(self, gripForce, iteration=0, recordTime=10):
+        rospy.init_node('netft_node') #TODO needed?
+
+        zeroFTSensor()
+        rospy.sleep(2)
+
+        # Create a folder for the bag
+        bagName = 'f{}_i{}'.format(gripForce, iteration)
+        dir_save_bagfile = 'gripTests/'
+        if not os.path.exists(dir_save_bagfile):
+            os.makedirs(dir_save_bagfile)
+
+        topics = ["/netft/netft_data"]
+        subprocess.Popen('rosbag record -q -O {} {}'.format(bagName, " ".join(topics)), shell=True, cwd=dir_save_bagfile)   
+        rospy.sleep(1)
+        #hand.Grasp() TODO
+        rospy.sleep(recordTime)
+
+        # Stop recording rosbag
+        terminate_ros_node("/record")
+        rospy.sleep(1)
+        #hand.Open() TODO
+
+    def zeroFTSensor(self):
+        zeroSensorRos = rospy.ServiceProxy('/netft/zero', srv.Zero)
+        rospy.wait_for_service('/netft/zero', timeout=0.5)
+        zeroSensorRos()
+
+    def terminate_ros_node(self, s):
+        list_cmd = subprocess.Popen("rosnode list", shell=True, stdout=subprocess.PIPE)
+        list_output = list_cmd.stdout.read()
+        retcode = list_cmd.wait()
+        assert retcode == 0, "List command returned %d" % retcode
+        for string in list_output.split("\n"):
+            if string.startswith(s):
+                os.system("rosnode kill " + string)
 
     # def on_press(self, keyname):
     #     """handler for keyboard listener"""
@@ -118,7 +206,7 @@ class Record(object):
     #         else:
     #             key_handler(0)
 
-    # def init_controls(self):
+    # def init_keyboard(self):
     #     """Define keys and add listener"""
     #     self.controls = {
     #         'w': 'forward',
@@ -161,6 +249,16 @@ class Record(object):
                 print('alphanumeric key {0} pressed'.format(key.char))
                 self.reset_flag = True
                 # self.r.reset_cmd()
+            if key.char == 'w':
+                print('remove reset flag')
+                self.reset_flag = False
+                # self.r.reset_cmd()                
+            if key.char == 'a':
+                print('stack the trajectory')
+                self.record_flag = 1
+            if key.char == 's':
+                print('save the trajectory')
+                self.record_flag = 2            
         except AttributeError:
             print('special key {0} pressed'.format(
                 key))
@@ -171,6 +269,7 @@ class Record(object):
         #     key))
         if key == keyboard.Key.esc:
             # Stop listener
+            rospy.loginfo("Stop keyboard listener")
             return False
 
 

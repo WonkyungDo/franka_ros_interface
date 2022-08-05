@@ -981,6 +981,8 @@ class ArmInterface(object):
             self.set_joint_impedance_pose(jlists[i], stiffness)
             # include reset code here in case the list doesn't exist
             if i ==0: 
+                rospy.loginfo("No trajectory detected! Reset the robot...")
+
                 self.reset_cmd()
 
 
