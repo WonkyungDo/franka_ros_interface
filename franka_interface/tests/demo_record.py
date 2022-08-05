@@ -15,6 +15,7 @@ import os
     WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
 """
 #TODO: after q, or reset the motion, the elapsed time increased and causing the frequency increasing
+# TODO: integrate ati sensor ftn, gripper motion, and smoother interaction with recorded trajectory - how to record smooth traj?
 
 class Record(object):
     '''
