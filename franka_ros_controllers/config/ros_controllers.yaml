@@ -133,7 +133,7 @@ joint_impedance_controller:
         - 80.0
         - 30.0
         - 20.0
-        - 50.0
+        - 40.0
     d_gains:
         - 50.0
         - 50.0
@@ -141,6 +141,6 @@ joint_impedance_controller:
         - 20.0
         - 20.0
         - 20.0
-        - 10.0
+        - 10.0  # too responsive
     publish_rate: 30.0
     coriolis_factor: 1.0 

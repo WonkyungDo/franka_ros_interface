@@ -960,7 +960,8 @@ class ArmInterface(object):
 
         poseinfo = JointImpedanceCommand()
         poseinfo.position = joint_list
-        poseinfo.velocity = [0.003] * 7
+        #too fast
+        poseinfo.velocity = [0.005] * 7
         self._joint_impedance_publisher.publish(poseinfo)
 
         #wait until motion complete
@@ -980,9 +981,14 @@ class ArmInterface(object):
         for i in range(len(jlists)):
             self.set_joint_impedance_pose(jlists[i], stiffness)
             # include reset code here in case the list doesn't exist
+
+            # joint impedance often leads to cartesian reflex error - need to reset this!
+            if self._robot_mode == 4:
+                self.reset_cmd()
+
+                
             if i ==0: 
                 rospy.loginfo("No trajectory detected! Reset the robot...")
-
                 self.reset_cmd()
 
 

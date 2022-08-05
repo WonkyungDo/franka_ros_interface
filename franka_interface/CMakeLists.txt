@@ -128,6 +128,7 @@ catkin_python_setup()
 catkin_install_python(PROGRAMS scripts/enable_robot.py 
                                scripts/move_to_neutral.py
                                scripts/simple_gripper.py
+                               scripts/reset_ctrl.py
                                tests/demo_joint_positions_keyboard.py
                                tests/demo_interface.py
                                tests/test_zeroG.py
