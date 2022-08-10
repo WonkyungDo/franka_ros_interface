@@ -952,6 +952,7 @@ class ArmInterface(object):
         """
         if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
             self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
 
         if stiffness is not None:
             stiff_gain = JointImpedanceStiffness()
@@ -961,14 +962,64 @@ class ArmInterface(object):
         poseinfo = JointImpedanceCommand()
         poseinfo.position = joint_list
         #too fast
-        poseinfo.velocity = [0.005] * 7
+        # poseinfo.velocity = [0.005] * 7
+        poseinfo.velocity = [0.01] * 7
         self._joint_impedance_publisher.publish(poseinfo)
 
         #wait until motion complete
-        rospy.sleep(0.1)
+        rospy.sleep(0.01)
         while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
-            rospy.sleep(0.1)
+            rospy.sleep(0.001)
 
+    def set_joint_impedance_pose_frrate(self, joint_list, frrate, stiffness = None):
+        """
+        Move robot with given joint trajectory! 
+        joint_list : type - list, get the all joint information for impedance control with manipulating stiffness on our own
+
+
+        """
+        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
+            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
+
+        if stiffness is not None:
+            stiff_gain = JointImpedanceStiffness()
+            stiff_gain = stiffness
+            self._joint_impedance_publisher.publish(stiff_gain)
+
+        poseinfo = JointImpedanceCommand()
+        poseinfo.position = joint_list
+        #too fast
+        # poseinfo.velocity = [0.005] * 7
+        poseinfo.velocity = [0.01] * 7
+        self._joint_impedance_publisher.publish(poseinfo)
+
+        #wait until motion complete
+        rospy.sleep(0.01)
+        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
+            rospy.sleep(0.001)
+
+    def exec_joint_impedance_trajectory_frrate(self, jlists, stiffness = None):
+        """
+        execute joint impedance trajectory controller.
+        jlists : list of joint inputs.  
+        """
+        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
+            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
+
+        if len(jlists) == 0: 
+            rospy.loginfo("No trajectory detected! Reset the robot...")
+            self.reset_cmd()
+            return
+        for i in range(len(jlists)):
+            
+            self.set_joint_impedance_pose(jlists[i], stiffness)
+            # include reset code here in case the list doesn't exist
+            print("current joint: " , jlists[i])
+            # joint impedance often leads to cartesian reflex error - need to reset this!
+            if self._robot_mode == 4:
+                self.reset_cmd()
 
     def exec_joint_impedance_trajectory(self, jlists, stiffness = None):
         """
@@ -977,19 +1028,23 @@ class ArmInterface(object):
         """
         if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
             self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
 
+        if len(jlists) == 0: 
+            rospy.loginfo("No trajectory detected! Reset the robot...")
+            self.reset_cmd()
+            return
         for i in range(len(jlists)):
+            
             self.set_joint_impedance_pose(jlists[i], stiffness)
             # include reset code here in case the list doesn't exist
-
+            print("current joint: " , jlists[i])
             # joint impedance often leads to cartesian reflex error - need to reset this!
             if self._robot_mode == 4:
                 self.reset_cmd()
 
-                
-            if i ==0: 
-                rospy.loginfo("No trajectory detected! Reset the robot...")
-                self.reset_cmd()
+            
+
 
 
     def move_to_cartesian_pose(self, pos, ori=None, use_moveit=True):

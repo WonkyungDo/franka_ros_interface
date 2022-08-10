@@ -59,3 +59,4 @@ srv_gen
 settings.json
 
 franka_interface/scripts/test.py
+franka_interface/tests/trash.txt

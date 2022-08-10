@@ -39,4 +39,5 @@ from franka_interface import ArmInterface
 if __name__ == '__main__':
     rospy.init_node("move_to_neutral_node")
     r = ArmInterface()
+    r.reset_cmd()
     r.move_to_neutral()

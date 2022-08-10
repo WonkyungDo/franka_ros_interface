@@ -4,15 +4,35 @@ from franka_interface import ArmInterface
 from pynput import mouse, keyboard
 import subprocess
 import os
+import netft_driver.srv as srv
 
 """
 :info:
     
-    record the joint position without selecting velocity with joint impedance control 
+    record the joint position without selecting velocity with joint impedance control through keyboard input
 
     This can be done without setting the fci control mode. The joint saving rate can be controlled by using period / sleep / rate ftn 
     
-    WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
+    keyboard instruction:
+    first, select basic / record / execute mode:
+    record mode - 1 : record joint info and save those on record.py
+                    please push the user stop button and move the robot 
+                    Uses keyboard input-
+                       a: record current joint status
+                       s: stop and save the list of recorded joints
+
+    continuous record mode - 2
+                    : record joint info continuously
+                    Uses keyboard input - 
+                       e: record current joint status
+                       r: save the list of recorded joints
+    execute mode - 3 : execute joint lists recorded on record.py 
+
+    Keyboard input
+        q: send reset command until it receives keycode w
+        w: reset 'q'
+
+
 """
 #TODO: after q, or reset the motion, the elapsed time increased and causing the frequency increasing
 # TODO: integrate ati sensor ftn, gripper motion, and smoother interaction with recorded trajectory - how to record smooth traj?
@@ -40,6 +60,7 @@ class Record(object):
 
         self.reset_flag = False 
         self.record_flag = 0
+        self.record_cont_flag = 0
  
         jac = self.r.zero_jacobian() # get end-effector jacobian
 
@@ -61,16 +82,24 @@ class Record(object):
         listener.start()
         
 
+        rospy.loginfo("select mode with integer : \n")
+        rospy.loginfo("- 1: record through keyboard\n")
+        rospy.loginfo("- 2: record seamlessly with one keyboard input untill it ends\n")
+        rospy.loginfo("- 3: execute recorded joint lists with joint impedance controller\n")
         
-        rospy.loginfo("start recording...\n")
-        val = input("integer anything : \n")
+        val = input("select mode with integer : \n")
         print(val)
+
         if int(val) == 1: 
-            self.test_moverobot()
-        if int(val) == 2:
             self.test_record()
+        if int(val) == 2:
+            val_sr = input("record start: select frame rate (ex:0.03 s)")
+            self.test_record_continuous(float(val_sr))
         if int(val) == 3:
-            self.test_execute_traj()
+            val_traj = input("which trajectory? 1: discontinuous traj, 2: continuous traj")
+            self.test_execute_traj(int(val_traj))
+
+
 
     def test_record(self):
         """
@@ -91,14 +120,48 @@ class Record(object):
                with open ('record.npy', 'wb') as f:
                     np.save(f, self.result)
 
+    def test_record_continuous(self, record_period=0.5):
+        """
+        record joint angles and velocity? or just angles? 
+        and save on the npy file 
+        """
+        while not rospy.is_shutdown():
+            
+            if self.record_cont_flag == 1:
+                p2 = self.r.endpoint_pose()
+                q1 = self.r.joint_angles()
+                self.result.append(self.r.convertToList(q1))
 
+                rospy.sleep(record_period)
+                rospy.loginfo("recorded! {}th path. ".format(len(self.result)))
+            else:
+                rospy.sleep(0.3)
+            if self.record_cont_flag == 2:
+               with open ('record_cont_{}.npy'.format(record_period), 'wb') as f:
+                    np.save(f, self.result)    
+               
+               self.record_cont_flag = 0
 
-    def test_execute_traj(self):
+    def test_execute_traj(self, flag):
         """
         execute trajectory 
+        get the input before execute 
+        flag = 1: stacked joint pose with each keyboard input
+        flag = 2: continuous joint pose
         """
-        self.recorded = np.load('record.npy')
-        print(self.recorded)
+        if flag == 1:
+            self.recorded = np.load('record.npy')
+        elif flag == 2:
+            
+            self.recorded = np.load('record_cont_0.03.npy')
+        
+        rospy.loginfo("reset the robot and move to initial position first: neutral position")
+        self.r.reset_cmd()
+        self.r.move_to_neutral()
+        rospy.sleep(1)
+
+        rospy.sleep(2)
+        # print(self.recorded)
         if len(self.recorded) != 0 :
             print("see")
             self.r.exec_joint_impedance_trajectory(self.recorded)
@@ -138,109 +201,12 @@ class Record(object):
             self.rate.sleep()
 
 
-    def gripRecord(self, gripForce, iteration=0, recordTime=10):
-        rospy.init_node('netft_node') #TODO needed?
+    def ATI_reset(self):
 
-        self.zeroFTSensor()
-        rospy.sleep(2)
+        reset_ati = rospy.ServiceProxy('/ati_sensor/reset', srv.Reset)
+        rospy.wait_for_service('/ati_sensor/reset', timeout = 0.5)
 
-        # Create a folder for the bag
-        bagName = 'f{}_i{}'.format(gripForce, iteration)
-        dir_save_bagfile = 'gripTests/'
-        if not os.path.exists(dir_save_bagfile):
-            os.makedirs(dir_save_bagfile)
-
-        topics = ["/netft/netft_data"]
-        subprocess.Popen('rosbag record -q -O {} {}'.format(bagName, " ".join(topics)), shell=True, cwd=dir_save_bagfile)   
-        rospy.sleep(1)
-        #hand.Grasp() TODO
-        rospy.sleep(recordTime)
-
-        # Stop recording rosbag
-        self.terminate_ros_node("/record")
-        rospy.sleep(1)
-        #hand.Open() TODO
-
-    def zeroFTSensor(self):
-        zeroSensorRos = rospy.ServiceProxy('/netft/zero', srv.Zero)
-        rospy.wait_for_service('/netft/zero', timeout=0.5)
-        zeroSensorRos()
-
-    def terminate_ros_node(self, s):
-        list_cmd = subprocess.Popen("rosnode list", shell=True, stdout=subprocess.PIPE)
-        list_output = list_cmd.stdout.read()
-        retcode = list_cmd.wait()
-        assert retcode == 0, "List command returned %d" % retcode
-        for string in list_output.split("\n"):
-            if string.startswith(s):
-                os.system("rosnode kill " + string)
-
-    # def on_press(self, keyname):
-    #     """handler for keyboard listener"""
-    #     if self.keydown:
-    #         return
-    #     try:
-    #         self.keydown = True
-    #         keyname = str(keyname).strip('\'')
-    #         print('+' + keyname)
-    #         if keyname == 'Key.esc':
-    #             self.drone.quit()
-    #             exit(0)
-    #         if keyname in self.controls:
-    #             key_handler = self.controls[keyname]
-    #             if isinstance(key_handler, str):
-    #                 getattr(self.drone, key_handler)(self.speed)
-    #             else:
-    #                 key_handler(self.speed)
-    #     except AttributeError:
-    #         print('special key {0} pressed'.format(keyname))
-
-    # def on_release(self, keyname):
-    #     """Reset on key up from keyboard listener"""
-    #     self.keydown = False
-    #     keyname = str(keyname).strip('\'')
-    #     print('-' + keyname)
-    #     if keyname in self.controls:
-    #         key_handler = self.controls[keyname]
-    #         if isinstance(key_handler, str):
-    #             getattr(self.drone, key_handler)(0)
-    #         else:
-    #             key_handler(0)
-
-    # def init_keyboard(self):
-    #     """Define keys and add listener"""
-    #     self.controls = {
-    #         'w': 'forward',
-    #         's': 'backward',
-    #         'a': 'left',
-    #         'd': 'right',
-    #         'Key.space': 'up',
-    #         'Key.shift': 'down',
-    #         'Key.shift_r': 'down',
-    #         'q': 'counter_clockwise',
-    #         'e': 'clockwise',
-    #         'i': lambda speed: self.drone.flip_forward(),
-    #         'k': lambda speed: self.drone.flip_back(),
-    #         'j': lambda speed: self.drone.flip_left(),
-    #         'l': lambda speed: self.drone.flip_right(),
-    #         # arrow keys for fast turns and altitude adjustments
-    #         'Key.left': lambda speed: self.drone.counter_clockwise(speed),
-    #         'Key.right': lambda speed: self.drone.clockwise(speed),
-    #         'Key.up': lambda speed: self.drone.up(speed),
-    #         'Key.down': lambda speed: self.drone.down(speed),
-    #         'Key.tab': lambda speed: self.drone.takeoff(),
-    #         'Key.backspace': lambda speed: self.drone.land(),
-    #         'p': lambda speed: self.palm_land(speed),
-    #         't': lambda speed: self.toggle_tracking(speed),
-    #         'r': lambda speed: self.toggle_recording(speed),
-    #         'z': lambda speed: self.toggle_zoom(speed),
-    #         'Key.enter': lambda speed: self.take_picture(speed)
-    #     }
-    #     self.key_listener = keyboard.Listener(on_press=self.on_press,
-    #                                           on_release=self.on_release)
-    #     self.key_listener.start()
-    #     # self.key_listener.join()
-
+        reset_ati()
 
 
     def on_press(self, key):
@@ -259,7 +225,26 @@ class Record(object):
                 self.record_flag = 1
             if key.char == 's':
                 print('save the trajectory')
-                self.record_flag = 2            
+                self.record_flag = 2          
+
+            if key.char == 'e':
+                print('stack the continuous trajectory')
+                self.record_cont_flag = 1
+            if key.char == 'r':
+                print('save the continuous trajectory')
+                self.record_cont_flag = 2            
+
+
+            if key.char == 'p':
+                print("---------------------description---------------------")
+                print("q :       reset robot and stop ")
+                print("w :       undo reset     ")
+                print("a :       record the current joint status on record.py -  ")
+                print("s :       reset robot and stop ")
+                print("e :       reset robot and stop ")
+                print("r :       reset robot and stop ")
+                # print("q :       reset robot and stop ")
+
         except AttributeError:
             print('special key {0} pressed'.format(
                 key))
