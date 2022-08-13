@@ -170,6 +170,10 @@ class ArmInterface(object):
 
         # neutral pose joint positions
         self._neutral_pose_joints = self._params.get_neutral_pose()
+        #wkdo collecting pose joint positions
+        self._collecting_pose_joints = self._params.get_collecting_pose()
+        #wkdo reset pose joint positions
+        self._reset_pose_joints = self._params.get_reset_pose()
 
         self._frames_interface = FrankaFramesInterface()
         try:
@@ -735,6 +739,38 @@ class ArmInterface(object):
         self.set_joint_position_speed(speed)
         self.move_to_joint_positions(self._neutral_pose_joints, timeout)
 
+
+    #wkdo
+    def move_to_collect_pos(self, timeout=15.0, speed=0.15):
+        """
+        Command the Limb joints to a predefined set of "collecting position" joint angles.
+        From rosparam /franka_control/collecting_pose.
+
+        :type timeout: float
+        :param timeout: seconds to wait for move to finish [15]
+        :type speed: float
+        :param speed: ratio of maximum joint speed for execution
+         default= 0.15; range= [0.0-1.0]
+        """
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._collecting_pose_joints, timeout)
+
+    #wkdo
+    def move_to_reset_pos(self, timeout=15.0, speed=0.15):
+        """
+        Command the Limb joints to a predefined set of "reset position" joint angles.
+        From rosparam /franka_control/reset_pose.
+
+        :type timeout: float
+        :param timeout: seconds to wait for move to finish [15]
+        :type speed: float
+        :param speed: ratio of maximum joint speed for execution
+         default= 0.15; range= [0.0-1.0]
+        """
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._reset_pose_joints, timeout)
+
+
     def move_to_joint_positions(self, positions, timeout=10.0,
                                 threshold=0.00085,
                                 test=None, use_moveit=True):
@@ -971,9 +1007,34 @@ class ArmInterface(object):
         while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
             rospy.sleep(0.001)
 
+
+    def exec_joint_impedance_trajectory(self, jlists, stiffness = None):
+        """
+        execute joint impedance trajectory controller.
+        jlists : list of joint inputs.  
+        """
+        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
+            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
+
+        if len(jlists) == 0: 
+            rospy.loginfo("No trajectory detected! Reset the robot...")
+            self.reset_cmd()
+            return
+        for i in range(len(jlists)):
+            
+            self.set_joint_impedance_pose(jlists[i], stiffness)
+            # include reset code here in case the list doesn't exist
+            print("current joint: " , jlists[i])
+            # joint impedance often leads to cartesian reflex error - need to reset this!
+            if self._robot_mode == 4:
+                self.reset_cmd()
+
     def set_joint_impedance_pose_frrate(self, joint_list, frrate, stiffness = None):
         """
-        Move robot with given joint trajectory! 
+        Move robot with given joint trajectory.
+        This function is copy of set_joint_impedance_pose but more precised setting for
+        frrate: selec
         joint_list : type - list, get the all joint information for impedance control with manipulating stiffness on our own
 
 
@@ -999,7 +1060,7 @@ class ArmInterface(object):
         while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
             rospy.sleep(0.001)
 
-    def exec_joint_impedance_trajectory_frrate(self, jlists, stiffness = None):
+    def exec_joint_impedance_trajectory_frrate(self, jlists, frrate, stiffness = None):
         """
         execute joint impedance trajectory controller.
         jlists : list of joint inputs.  
@@ -1014,34 +1075,14 @@ class ArmInterface(object):
             return
         for i in range(len(jlists)):
             
-            self.set_joint_impedance_pose(jlists[i], stiffness)
+            self.set_joint_impedance_pose_frrate(jlists[i], frrate, stiffness)
             # include reset code here in case the list doesn't exist
             print("current joint: " , jlists[i])
             # joint impedance often leads to cartesian reflex error - need to reset this!
             if self._robot_mode == 4:
                 self.reset_cmd()
 
-    def exec_joint_impedance_trajectory(self, jlists, stiffness = None):
-        """
-        execute joint impedance trajectory controller.
-        jlists : list of joint inputs.  
-        """
-        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
-            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
-            rospy.sleep(0.5)
 
-        if len(jlists) == 0: 
-            rospy.loginfo("No trajectory detected! Reset the robot...")
-            self.reset_cmd()
-            return
-        for i in range(len(jlists)):
-            
-            self.set_joint_impedance_pose(jlists[i], stiffness)
-            # include reset code here in case the list doesn't exist
-            print("current joint: " , jlists[i])
-            # joint impedance often leads to cartesian reflex error - need to reset this!
-            if self._robot_mode == 4:
-                self.reset_cmd()
 
             
 

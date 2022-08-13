@@ -28,6 +28,24 @@ robot_config:
         panda_joint6: 1.5411935298621688 
         panda_joint7: 0.7534486589746342 
 
+    collecting_pose:
+        panda_joint1: -0.011372364352341806 
+        panda_joint2: 0.21877380535684576  
+        panda_joint3: 0.004574414656460362 
+        panda_joint4: -2.154583692902807 
+        panda_joint5: 0.028744091162909612 
+        panda_joint6: 2.4236316314711472 
+        panda_joint7: 0.7626847778674628 
+
+    reset_pose:
+        panda_joint1: -0.022741129955352355
+        panda_joint2: -0.35965990199494513  
+        panda_joint3: -0.039269722086130866 
+        panda_joint4: -0.6519538549998808 
+        panda_joint5: 0.02654991794843978
+        panda_joint6: 0.4789563876298161 
+        panda_joint7: 0.7538603618658251    
+
     joint_config:
         joint_acceleration_limit:
             panda_joint1: 15.0 # rad / sec^2

@@ -34,18 +34,22 @@ if __name__ == '__main__':
     rospy.loginfo("Commanding...\n")
     joint_names = r.joint_names()
     vals = r.joint_angles()
-    while not rospy.is_shutdown():
 
-        elapsed_time_ += period
+    IPython.embed()
 
-        delta = 3.14 / 16.0 * (1 - np.cos(3.14 / 5.0 * elapsed_time_.to_sec())) * 0.2
 
-        for j in joint_names:
-            if j == joint_names[4]:
-                vals[j] = initial_pose[j] - delta
-            else:
-                vals[j] = initial_pose[j] + delta
+    # while not rospy.is_shutdown():
 
-        # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
-        r.set_joint_positions_velocities([vals[j] for j in joint_names], [0.0]*7) # for impedance control
-        rate.sleep()
+    #     elapsed_time_ += period
+
+    #     delta = 3.14 / 16.0 * (1 - np.cos(3.14 / 5.0 * elapsed_time_.to_sec())) * 0.2
+
+    #     for j in joint_names:
+    #         if j == joint_names[4]:
+    #             vals[j] = initial_pose[j] - delta
+    #         else:
+    #             vals[j] = initial_pose[j] + delta
+
+    #     # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
+    #     r.set_joint_positions_velocities([vals[j] for j in joint_names], [0.0]*7) # for impedance control
+    #     rate.sleep()

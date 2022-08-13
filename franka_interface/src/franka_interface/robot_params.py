@@ -93,6 +93,44 @@ class RobotParams(object):
         return neutral_pose
 
 
+    def get_collecting_pose(self):
+        """
+        wkdo
+        Get collecting pose joint positions from parameter server 
+        (/robot_config/collecting_pose)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            collecting_pose = rospy.get_param("/robot_config/collecting_pose")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect collecting joint pos."
+                         " under param /franka_control/collecting_pose")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return collecting_pose
+
+    def get_reset_pose(self):
+        """
+        Get reset pose joint positions from parameter server 
+        (/robot_config/reset_pose)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            reset_pose = rospy.get_param("/robot_config/reset_pose")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect reset joint pos."
+                         " under param /franka_control/reset_pose")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return reset_pose
+
+
     def get_robot_ip(self):
         robot_ip = None
         try:
