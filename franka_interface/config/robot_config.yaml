@@ -29,13 +29,13 @@ robot_config:
         panda_joint7: 0.7534486589746342 
 
     collecting_pose:
-        panda_joint1: -0.011372364352341806 
-        panda_joint2: 0.21877380535684576  
-        panda_joint3: 0.004574414656460362 
+        panda_joint1: -0.012692199049811606 
+        panda_joint2: 0.15991111190765225  
+        panda_joint3: -0.013538261069621848
         panda_joint4: -2.154583692902807 
-        panda_joint5: 0.028744091162909612 
-        panda_joint6: 2.4236316314711472 
-        panda_joint7: 0.7626847778674628 
+        panda_joint5: 0.029400776573353344
+        panda_joint6: 2.2792713105123803 
+        panda_joint7: 0.753693321040935
 
     reset_pose:
         panda_joint1: -0.022741129955352355

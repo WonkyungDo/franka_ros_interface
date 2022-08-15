@@ -132,7 +132,7 @@ catkin_install_python(PROGRAMS scripts/enable_robot.py
                                tests/demo_joint_positions_keyboard.py
                                tests/demo_interface.py
                                tests/test_zeroG.py
-                               tests/test_impedance.py
+                               tests/collect_main.py
                                tests/grip_test.py
                                tests/demo_record.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

@@ -69,6 +69,8 @@ from franka_moveit import PandaMoveGroupInterface
 from franka_moveit.utils import create_pose_msg
 from franka_tools import FrankaFramesInterface, FrankaControllerManagerInterface, JointTrajectoryActionClient, CollisionBehaviourInterface
 
+#wkdo - for ati sensor reset : please comment out below and ftn exec_joint_impedance_trajectory_ati when not using ati sensor.
+
 
 class TipState():
 
@@ -918,11 +920,12 @@ class ArmInterface(object):
         """
         reset the robot controller by publishing reset code
         """
-        rospy.sleep(0.5)
         pub_reset = rospy.Publisher('/franka_ros_interface/franka_control/error_recovery/goal', franka_msgs.msg.ErrorRecoveryActionGoal, queue_size=10)
         rospy.sleep(0.5)
         pub_reset.publish(franka_msgs.msg.ErrorRecoveryActionGoal())
+
         rospy.loginfo("error recoversy code sent")
+        rospy.sleep(0.5)
 
 
     #wkdo 
@@ -1034,7 +1037,7 @@ class ArmInterface(object):
         """
         Move robot with given joint trajectory.
         This function is copy of set_joint_impedance_pose but more precised setting for
-        frrate: selec
+        frrate: select frame rate for each trajectory control
         joint_list : type - list, get the all joint information for impedance control with manipulating stiffness on our own
 
 
@@ -1051,40 +1054,16 @@ class ArmInterface(object):
         poseinfo = JointImpedanceCommand()
         poseinfo.position = joint_list
         #too fast
-        # poseinfo.velocity = [0.005] * 7
-        poseinfo.velocity = [0.01] * 7
+        # poseinfo.velocity = [0.005] * 7 
+        poseinfo.velocity = [0.03] * 7
         self._joint_impedance_publisher.publish(poseinfo)
 
         #wait until motion complete
-        rospy.sleep(0.01)
-        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
+        rospy.sleep(0.005)
+        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 2e-2:
             rospy.sleep(0.001)
 
-    def exec_joint_impedance_trajectory_frrate(self, jlists, frrate, stiffness = None):
-        """
-        execute joint impedance trajectory controller.
-        jlists : list of joint inputs.  
-        """
-        if self._ctrl_manager.current_controller != self._ctrl_manager.joint_impedance_controller:
-            self.switch_controller(self._ctrl_manager.joint_impedance_controller)
-            rospy.sleep(0.5)
 
-        if len(jlists) == 0: 
-            rospy.loginfo("No trajectory detected! Reset the robot...")
-            self.reset_cmd()
-            return
-        for i in range(len(jlists)):
-            
-            self.set_joint_impedance_pose_frrate(jlists[i], frrate, stiffness)
-            # include reset code here in case the list doesn't exist
-            print("current joint: " , jlists[i])
-            # joint impedance often leads to cartesian reflex error - need to reset this!
-            if self._robot_mode == 4:
-                self.reset_cmd()
-
-
-
-            
 
 
 
