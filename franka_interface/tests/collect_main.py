@@ -84,6 +84,8 @@ class Record(object):
         rospy.loginfo("note that both mode will move the robot into the neutral pose and collecting position to reset the motion. ")
         val = input("select mode with integer : \n")
         print(val)
+        self.ATI_reset()
+
 
         if int(val) == 1: 
             # val_sr = input("record start: select frame rate (ex:0.03 s)")
@@ -108,10 +110,12 @@ class Record(object):
         self.r.move_to_collect_pos()
         rospy.sleep(2)
 
-        rospy.loginfo("Now please push the User stop button and feel free to move the robot!")
+        # rospy.loginfo("Now please push the User stop button and feel free to move the robot!")
+        rospy.loginfo("feel free to move the robot! ")
 
         while not rospy.is_shutdown():
-            
+            self.r.set_joint_torques(dict(zip(self.joint_names, [0.0]*7))) # send 0 torques
+
             if self.record_cont_flag == 1:
                 p2 = self.r.endpoint_pose()
                 q1 = self.r.joint_angles()
@@ -126,10 +130,11 @@ class Record(object):
                     # threading problem..
                     self.result_ati[len(self.result)-1] = 1
                     self.record_ati_flag = 0
+                    self.ATI_reset()
                 
 
-            else:
-                rospy.sleep(0.3)
+            # else:
+            #     rospy.sleep(0.3)
 
             if self.record_cont_flag == 2:
                with open ('record_{}.npy'.format(filename), 'wb') as f:
