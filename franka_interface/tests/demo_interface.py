@@ -1,6 +1,7 @@
 import rospy
 import numpy as np
 from franka_interface import ArmInterface
+from franka_interface import GripperInterface
 import IPython
 """
 :info:
@@ -13,12 +14,29 @@ import IPython
     WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
 """
 
+def gripper_test(max):
+
+    for i in range(max):
+        if i==0:
+            a = True
+        else:
+            a= False
+        gr.move_joints(0.002*(i),speed = None,wait_for_result=a)
+        print("i: ", i)
+    for i in range(max):
+        if i==0:
+            a = True
+        else:
+            a= False
+        gr.move_joints(0.002*(max-1-i),speed = None,wait_for_result=a)
+        print("i: ", i)
+
 if __name__ == '__main__':
     rospy.init_node("path_recording")
     r = ArmInterface() # create arm interface instance (see https://justagist.github.io/franka_ros_interface/DOC.html#arminterface for all available methods for ArmInterface() object)
     cm = r.get_controller_manager() # get controller manager instance associated with the robot (not required in most cases)
     mvt = r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners (see https://justagist.github.io/franka_ros_interface/DOC.html#franka_moveit.PandaMoveGroupInterface for documentation)
-
+    gr = GripperInterface()
     elapsed_time_ = rospy.Duration(0.0)
     period = rospy.Duration(0.005)
 
@@ -35,8 +53,11 @@ if __name__ == '__main__':
     joint_names = r.joint_names()
     vals = r.joint_angles()
 
-    IPython.embed()
 
+
+
+        
+    IPython.embed()
 
     # while not rospy.is_shutdown():
 

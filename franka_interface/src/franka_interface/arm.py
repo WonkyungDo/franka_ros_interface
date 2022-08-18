@@ -1055,12 +1055,12 @@ class ArmInterface(object):
         poseinfo.position = joint_list
         #too fast
         # poseinfo.velocity = [0.005] * 7 
-        poseinfo.velocity = [0.03] * 7
+        poseinfo.velocity = [0.02] * 7
         self._joint_impedance_publisher.publish(poseinfo)
 
         #wait until motion complete
         rospy.sleep(0.005)
-        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 2e-2:
+        while sum(map(abs, self.convertToList(self.joint_velocities()))) > 1e-2:
             rospy.sleep(0.001)
 
 
