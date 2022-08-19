@@ -86,8 +86,8 @@ class Record(object):
         self.r.reset_cmd()
         self.r.move_to_neutral()
         self.r.move_to_collect_pos()
-        self.gr.open()
-        self.gr.close()
+        # self.gr.open()
+        # self.gr.close()
 
         rospy.sleep(2)
 

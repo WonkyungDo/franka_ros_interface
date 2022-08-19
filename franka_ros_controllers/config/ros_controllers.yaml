@@ -127,25 +127,53 @@ joint_impedance_controller:
         - panda_joint6
         - panda_joint7
     k_gains: # do not increase those as effort joint impedance ctrler
-        - 360.0
-        - 300.0
-        - 300.0
-        - 240.0
-        - 90.0
-        - 60.0
-        - 70.0
+        - 600.0
+        - 500.0
+        - 500.0
+        - 400.0
+        - 150.0
+        - 100.0
+        - 75.0
     d_gains:
-        - 50.0
-        - 50.0
-        - 50.0
-        - 20.0
-        - 20.0
-        - 20.0
-        - 10.0  # too responsive
+        - 70.0
+        - 70.0
+        - 70.0
+        - 30.0
+        - 30.0
+        - 30.0
+        - 20.0  # too responsive
     publish_rate: 30.0
     coriolis_factor: 1.0 
 
-
+# joint_impedance_controller:
+#     type: franka_ros_controllers/JointImpedanceController
+#     arm_id: panda
+#     joint_names:
+#         - panda_joint1
+#         - panda_joint2
+#         - panda_joint3
+#         - panda_joint4
+#         - panda_joint5
+#         - panda_joint6
+#         - panda_joint7
+#     k_gains: # do not increase those as effort joint impedance ctrler
+#         - 360.0
+#         - 300.0
+#         - 300.0
+#         - 240.0
+#         - 90.0
+#         - 60.0
+#         - 70.0
+#     d_gains:
+#         - 50.0
+#         - 50.0
+#         - 50.0
+#         - 20.0
+#         - 20.0
+#         - 20.0
+#         - 10.0  # too responsive
+#     publish_rate: 30.0
+#     coriolis_factor: 1.0 
     # joint_impedance_controller:
     # type: franka_ros_controllers/JointImpedanceController
     # arm_id: panda
