@@ -85,7 +85,14 @@ def transform(pos, quat, flag=1):
     r = R.from_matrix(T_fl2ef[:3,:3])
     # flange (link 8 ) is located in 4.5mm inside of the bolted part 
     fl_distance =0.004212608
-    touch_distance = 0.15
+    touch_distance = 48.57/1000
+    lenspos = 2 # 2mm from outer glass
+    rgb_distance_z = (46 - lenspos)/1000
+    rgb_distance_y = 96.85/1000
+    depth_distance_z = 30.85/1000
+    depth_distance_y = 50/1000
+    depth_distance_x = 17.5/1000
+
     # fl to ee 
     T_fl2ee = np.eye(4)
     T_fl2ee[:3,:3] = np.array([[np.sqrt(2)/2, -np.sqrt(2)/2, 0],
@@ -110,13 +117,13 @@ def transform(pos, quat, flag=1):
     if flag == 3:
         # fl to ee_rgb
         T_w2ff = T_now
-        T_ee[:3,3] = np.array([0,0.075,fl_distance + 0.2])
+        T_ee[:3,3] = np.array([0,rgb_distance_y,fl_distance + rgb_distance_z])
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
     if flag == 4:
         # fl to ee_depth 
         T_w2ff = T_now
-        T_ee[:3,3] = np.array([0,0.045,fl_distance + 0.15])
+        T_ee[:3,3] = np.array([depth_distance_x,depth_distance_y,fl_distance + depth_distance_z])
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
     pos , quat = tfmat2pq(T_ee)
@@ -136,7 +143,7 @@ def test_pose():
     print("rgb: ", pos_rgb, quat_rgb)
     print("depth: ", pos_depth, quat_depth)
 
-    if __name__ == '__main__':
+if __name__ == '__main__':
     # pos = np.array([0,0,0])
     # quat = np.quaternion(0,0,0,1)
     # # pos2, quat2 = transform(pos, quat, flag=2)
