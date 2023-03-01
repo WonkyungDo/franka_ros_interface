@@ -36,6 +36,7 @@ if __name__ == '__main__':
     r = ArmInterface() # create arm interface instance (see https://justagist.github.io/franka_ros_interface/DOC.html#arminterface for all available methods for ArmInterface() object)
     cm = r.get_controller_manager() # get controller manager instance associated with the robot (not required in most cases)
     mvt = r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners (see https://justagist.github.io/franka_ros_interface/DOC.html#franka_moveit.PandaMoveGroupInterface for documentation)
+    # fr = r.get_frames_interface()
     gr = GripperInterface()
     elapsed_time_ = rospy.Duration(0.0)
     period = rospy.Duration(0.005)

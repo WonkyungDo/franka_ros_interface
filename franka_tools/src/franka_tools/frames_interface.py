@@ -33,11 +33,20 @@ from franka_msgs.srv import SetEEFrame, SetKFrame
 
 from collections import namedtuple
 _FRAME_NAMES = namedtuple('Constants', ['EE_FRAME', 'K_FRAME'])
-DEFAULT_TRANSFORMATIONS = _FRAME_NAMES([1, 0.0, 0.0, 0.0, 0.0,
-                                        1, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0],  # EE_FRAME
+DEFAULT_TRANSFORMATIONS = _FRAME_NAMES([1, 0.0, 0.0, 0.0, 
+                                        0.0, 1, 0.0, 0.0, 
+                                        0.0, 0.0, 1.0, 0.1, 
+                                        0.0, 0.0, 0.0, 1.0],  # EE_FRAME
                                        [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
                                            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]  # K_FRAME
                                        )  # identity matrices by default
+# DEFAULT_TRANSFORMATIONS = _FRAME_NAMES([1, 0.0, 0.0, 0.0, 
+#                                         0.0, 1, 0.0, 0.0, 
+#                                         0.0, 0.0, 1.0, 0.0, 
+#                                         0.0, 0.0, 0.0, 1.0],  # EE_FRAME
+#                                        [1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+#                                            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]  # K_FRAME
+#                                        )  # identity matrices by default
 
 
 class FrankaFramesInterface(object):
