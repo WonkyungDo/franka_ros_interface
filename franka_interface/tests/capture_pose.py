@@ -137,10 +137,30 @@ def transform(pos, quat, flag=1):
         T_fl2ee[:3,3] = np.array([-depth_distance_y,depth_distance_x,fl_distance + depth_distance_z])
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
-    pos , quat = tfmat2pq(T_ee)
+    pos1 , quat1 = tfmat2pq(T_ee)
+    Tf = quaternion_to_matrix_transform(np.array([1,0,0,0]), quat)
     IPython.embed()
 
-    return pos, quat
+    return pos1, quat1
+
+
+def quaternion_to_matrix(q):
+    # Convert a quaternion to a 3x3 rotation matrix
+    qw, qx, qy, qz = q
+    return np.array([[1 - 2*qy**2 - 2*qz**2, 2*qx*qy - 2*qz*qw, 2*qx*qz + 2*qy*qw],
+                     [2*qx*qy + 2*qz*qw, 1 - 2*qx**2 - 2*qz**2, 2*qy*qz - 2*qx*qw],
+                     [2*qx*qz - 2*qy*qw, 2*qy*qz + 2*qx*qw, 1 - 2*qx**2 - 2*qy**2]])
+
+def quaternion_inverse(q):
+    # Compute the inverse of a quaternion
+    qw, qx, qy, qz = q
+    return np.array([-qx, -qy, -qz, qw]) / np.linalg.norm(q)
+
+def quaternion_to_matrix_transform(q1, q2):
+    # Compute the transformation matrix that maps a vector from the q1 coordinate system to the q2 coordinate system
+    q1_inv = quaternion_inverse(q1)
+    T = quaternion_to_matrix(q2) @ quaternion_to_matrix(q1_inv)
+    return np.vstack([np.hstack([T, np.zeros((3, 1))]), np.array([0, 0, 0, 1])])
 
 def test_pose():
 
