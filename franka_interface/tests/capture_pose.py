@@ -77,9 +77,14 @@ def transform(pos, quat, flag=1):
     ee_rot2 = 0.707099974155426
     ee_z = 0.10339999943971634
     T_fl2ef = np.eye(4)
-    T_fl2ef[:3,:3] = np.array([[ee_rot2, -ee_rot2, 0],
-                            [ee_rot2, ee_rot2, 0],
-                            [0,0,1]])
+    # T_fl2ef[:3,:3] = np.array([[ee_rot2, -ee_rot2, 0],
+    #                         [ee_rot2, ee_rot2, 0],
+    #                         [0,0,1]])
+    # T_fl2ef[:3,3] = np.array([0,0,ee_z])
+
+    T_fl2ef[:3,:3] = np.array([[1,0, 0],
+                            [0, ee_rot2, ee_rot2],
+                            [0,-ee_rot2,ee_rot2]])
     T_fl2ef[:3,3] = np.array([0,0,ee_z])
     
     r = R.from_matrix(T_fl2ef[:3,:3])
@@ -93,13 +98,17 @@ def transform(pos, quat, flag=1):
     depth_distance_y = 50/1000
     depth_distance_x = 17.5/1000
 
+    touch_fin = fl_distance + touch_distance
+
     # fl to ee 
+    sq2 = np.sqrt(2)/2
     T_fl2ee = np.eye(4)
-    T_fl2ee[:3,:3] = np.array([[np.sqrt(2)/2, -np.sqrt(2)/2, 0],
-                            [np.sqrt(2)/2, np.sqrt(2)/2, 0],
-                            [0,0,1]])
-    
-    T_fl2ee[:3,3] = np.array([0,0,fl_distance + touch_distance])
+
+    T_fl2ee[:3,:3] = np.array([[1,0, 0],
+                            [0, np.sqrt(2)/2, np.sqrt(2)/2],
+                            [0,-np.sqrt(2)/2,np.sqrt(2)/2]])
+    T_fl2ee[:3,3] = np.array([0,touch_fin*sq2,touch_fin*sq2])
+    T_ee = np.eye(4)
 
     if flag == 1:
         # convert from ee to ef for checking (don't use this for autonomous case - trajectory needed)
@@ -110,24 +119,26 @@ def transform(pos, quat, flag=1):
     if flag == 2:
         # fl to ee_touch 
         T_w2ff = T_now
-        T_fl2ee[:3,3] = np.array([0,0,fl_distance + touch_distance])
+
+        T_fl2ee[:3,3] = np.array([0,touch_fin*sq2,touch_fin*sq2])
+
         # T_ee = np.dot(T_w2ef, np.dot(np.linalg.inv(T_fl2ef), T_fl2ee))
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
     if flag == 3:
         # fl to ee_rgb
         T_w2ff = T_now
-        T_ee[:3,3] = np.array([0,rgb_distance_y,fl_distance + rgb_distance_z])
+        T_fl2ee[:3,3] = np.array([-rgb_distance_y,0,fl_distance + rgb_distance_z])
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
     if flag == 4:
         # fl to ee_depth 
         T_w2ff = T_now
-        T_ee[:3,3] = np.array([depth_distance_x,depth_distance_y,fl_distance + depth_distance_z])
+        T_fl2ee[:3,3] = np.array([-depth_distance_y,depth_distance_x,fl_distance + depth_distance_z])
         T_ee = np.dot(T_w2ff, T_fl2ee)
 
     pos , quat = tfmat2pq(T_ee)
-    # IPython.embed()
+    IPython.embed()
 
     return pos, quat
 
@@ -136,12 +147,12 @@ def test_pose():
     pos_f, quat_f = r.get_flange_pose()
 
     pos_touch, quat_touch = transform(pos_f, quat_f, 2)
-    pos_rgb, quat_rgb = transform(pos_f, quat_f, 3)
-    pos_depth, quat_depth = transform(pos_f, quat_f, 4)
+    # pos_rgb, quat_rgb = transform(pos_f, quat_f, 3)
+    # pos_depth, quat_depth = transform(pos_f, quat_f, 4)
     print("flange: ", pos_f, quat_f)
     print("touch: ", pos_touch, quat_touch)
-    print("rgb: ", pos_rgb, quat_rgb)
-    print("depth: ", pos_depth, quat_depth)
+    # print("rgb: ", pos_rgb, quat_rgb)
+    # print("depth: ", pos_depth, quat_depth)
 
 if __name__ == '__main__':
     # pos = np.array([0,0,0])
