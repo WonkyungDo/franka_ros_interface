@@ -5,183 +5,402 @@ from franka_interface import GripperInterface
 import IPython
 import quaternion
 from scipy.spatial.transform import Rotation as R
+from pynput import mouse, keyboard
+import os
+import pickle
+import message_filters 
+from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import Image, JointState
+
 
 """
 :info:
-    Move robot using low-level controllers
+    captures the dt_rgb, dt_depth, depth image, rgb_webcam image, joint info, and pose (transformation matrix) of touch, depth, and rgb camera. 
 
-    1. record the joint position without selecting velocity with joint impedance control 
-
-    ## how to set up the impedance stiffness on here ?    
-
-    WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
 """
 
-def pq2tfmat(pos, quat):
-    """
-    pos and quat to transformation matrix
-    """
-    arquat = quaternion.as_float_array(quat)
-    r = R.from_quat(arquat)
-    T_obj = np.eye(4)
-    T_obj[:3,:3] = r.as_matrix()
-    T_obj[:3,3] = pos
-    return T_obj
+class Record(object):
+    '''
+    class for initiating keyboard input
+    '''
+
+    def __init__(self):
+        rospy.init_node("path_recording")
+
+        self.br = CvBridge()
+        self.image_tact_sub = message_filters.Subscriber('RunCamera/image_raw_1', Image)
+        self.image_webcam_sub = message_filters.Subscriber('RunCamera/webcam', Image)
+        self.image_depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
+        self.image_tact_depth_sub = message_filters.Subscriber('RunCamera/imgDepth', Image)
+
+        self.joint_sub = message_filters.Subscriber('joint_states', JointState)
+
+        ts = message_filters.ApproximateTimeSynchronizer([self.image_tact_sub, self.image_webcam_sub, self.image_depth_sub, self.image_tact_depth_sub,  self.joint_sub], queue_size=10, slop=0.1, allow_headerless=True)
+        # ts = message_filters.TimeSynchronizer([self.image_sub, self.wrench_sub], 10)
+        # ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.wrench_sub], 1,1, allow_headerless=True)
 
 
-def tfmat2pq(matrix):
-    r = R.from_matrix(matrix[:3,:3])
-    # quat = r.as_quat()
-    quat = np.quaternion(r.as_quat()[0], r.as_quat()[1], r.as_quat()[2], r.as_quat()[3])
-    pos = matrix[:3,3]
-    return pos, quat
 
-def transform(pos, quat, rotmat, flag=1):
-    """
-    convert position of ef pose frame to the pose of the gel
-    or convert position of real ee pose to the fake ee pose for the cartesian command 
-    ##########
-    flange quat is bullshit, let's use ori_mat in endpoint_pose()
-    rotation2quat or quat2rotation are also messing the rotation, let's not use them
-    ###########
+        self.savepath = os.path.join('/home/collab3/Desktop/touchnerf/recorded_dataset/')
 
-    :param pos / quat: fake end-effector pose or desired end effector pose 
-    :type pos: [float] or np.ndarray
-    :type quat: quaternion.quaternion or [float] (quaternion in w,x,y,z order)
-    :type rotmat: np.ndarray((3,3)) rotation matrix
+
+        self.r = ArmInterface() # create arm interface instance 
+        self.cm = self.r.get_controller_manager() # get controller manager instance associated with the robot 
+        self.mvt = self.r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners 
+        self.frames = self.r.get_frames_interface() # get the frame interface for getting ee frame and calculate transformation
+
+        self.elapsed_time_ = rospy.Duration(0.0)
+        self.period = rospy.Duration(0.005)
+        self.initial_pose = self.r.joint_angles() # get current joint angles of the robot
+
+        self.reset_flag = False 
+        self.record_cont_flag = 0
+ 
+        jac = self.r.zero_jacobian() # get end-effector jacobian
+
+        count = 0
+        self.rate = rospy.Rate(1000)
+
+        self.joint_names = self.r.joint_names()
+        self.vals = self.r.joint_angles()
+
+        rospy.sleep(1)
+        
+        self.result = []
+        self.result_ati = []
+        self.result_gr = []
+        self.recorded = []
+
+
+        self.path = os.path.join('/home/collab3/Desktop/touchnerf/recorded_path/')
+
+        # self.init_keyboard()
+        listener = keyboard.Listener(on_press=self.on_press,
+                                     on_release=self.on_release)
+        listener.start()
+        
+        rospy.loginfo("reset the robot joint and move to neutral and collecting pos")
+        self.r.reset_cmd()
+        self.r.move_to_neutral()
+        # self.r.move_to_collect_pos()
+
+        rospy.loginfo("select mode with integer : \n")
+        rospy.loginfo("- 1: record seamlessly with one keyboard input untill it ends\n")
+        rospy.loginfo("- 2: execute recorded joint lists with joint impedance controller\n")
+        rospy.loginfo("note that both mode will move the robot into the neutral pose and collecting position to reset the motion. ")
+
+        IPython.embed()
+        # val = input("select mode with integer : \n")
+        # print(val)
+        # if int(val) == 1: 
+        #     # val_sr = input("record start: select frame rate (ex:0.03 s)")
+        #     # self.frrate = float(val_sr)
+        #     self.frrate = 0.03
+        #     val_filename = input('type the name for recorded file. (type sth, then the final recorded file will be : record_sth.npy)')
+        #     self.test_record_continuous(val_filename, self.frrate)
+        # if int(val) == 2:
+        #     val_traj = input("type an index of file to execute. (type sth, the executed file will be : record_sth.npy)")
+        #     self.test_execute_traj(val_traj)
+
+
+
+
+
+    def test_record_continuous(self, filename, record_period=0.5):
+        """
+        record joint angles  
+        and save on the txt file 
+        """
+        # rospy.loginfo("Now please push the User stop button and feel free to move the robot!")
+        rospy.loginfo("feel free to move the robot! ")
+
+        while not rospy.is_shutdown():
+            self.r.set_joint_torques(dict(zip(self.joint_names, [0.0]*7))) # send 0 torques
+
+            if self.record_cont_flag == 1:
+                p2 = self.r.endpoint_pose()
+                q1 = self.r.joint_angles()
+                self.result.append(self.r.convertToList(q1))
+
+                rospy.sleep(record_period)
+                rospy.loginfo("recorded! {}th path. ".format(len(self.result)))
+
+                if self.record_all == 1:
+                    rospy.loginfo("record current datapoint")
+                    # threading problem..
+                    self.result_ati[len(self.result)-1] = 1
+                    self.record_ati_flag = 0
+                    self.ATI_reset()
+                
+
+            # else:
+            #     rospy.sleep(0.3)
+
+            if self.record_cont_flag == 2:
+               with open (os.path.join(self.path, 'record_{}.txt'.format(filename)), 'wb') as f:
+                    result_total = [self.result, self.result_ati, self.result_gr]
+                    pickle.dump(result_total, f)  
+
+
+            #    with open('record_ati_{}.npy'.format(filename), 'wb') as ff:
+            #         np.save(ff, self.result_ati)
+               
+            #    with open('record_gr_{}.npy'.format(filename), 'wb') as ff:
+            #         np.save(ff, self.result_gr)
+               
+
+               self.record_cont_flag = 0
+
+    def test_execute_traj(self, filename):
+        """
+        execute trajectory 
+        get the input before execute 
+        filename: index of the file to execute
+        """
+        with open (os.path.join(self.path, 'record_{}.txt'.format(filename)), 'rb') as f:
+            record_total = pickle.load(f)
+
+        self.recorded = record_total[0]
+        self.recorded_ati = record_total[1]
+        self.recorded_gr = record_total[2]
+
+        rospy.sleep(1.5)
+        # print(self.recorded)
+        if len(self.recorded) != 0 :
+            print("start moving the robot")
+            
+            # default value for basic ftns
+            # desired velocity: 0.01
+            # sleep rate: 0.01
+            # tolerance for desired position: 1e-2
+            # sleep during tolerance check: 0.001 
+            
+            # self.r.exec_joint_impedance_trajectory(self.recorded)
+            
+            #TODO: find right frame rate for efficient data-collecting process
+            frrate = 0.02
+
+            self.exec_joint_impedance_trajectory_ati(self.recorded, self.recorded_ati, self.recorded_gr, frrate)
+        else: 
+            rospy.loginfo("trajectory not detected")
+        
     
-    ef: fake end effector, 
-    ee_touch: pose of DenseTact (touch)
-    ee_rgb: pose of rgb camera (rgb)
+    def exec_joint_impedance_trajectory_ati(self, jlists, ati_lists, gripper_lists, frrate, stiffness = None):
+        """
+        execute joint impedance trajectory controller with ati sensor timing list.
+        jlists : list of joint inputs.  
+        ati_lists : list of ati sensor reset timing.
+        gripper_lists : list of gripper inputs.
+        """
+        if self.r._ctrl_manager.current_controller != self.r._ctrl_manager.joint_impedance_controller:
+            self.r.switch_controller(self.r._ctrl_manager.joint_impedance_controller)
+            rospy.sleep(0.5)
 
-    :param flag: if flag = 1, transform ee to ef (for giving commands)
-                 if flag = 2, transform ef to ee_touch
-                 if flag = 3, transform ef to ee_rgb
-                 if flag = 4, transform ef to ee_depth
-                 
-    
-    return: pos, quat, tfmat of the true end effector 
-    """
+        if len(jlists) == 0: 
+            rospy.loginfo("No trajectory detected! Reset the robot...")
+            self.r.reset_cmd()
+            return
+        for i in range(len(jlists)):
+            
+            self.r.set_joint_impedance_pose_frrate(jlists[i], frrate, stiffness)
+            
+            self.gr.move_joints(gripper_lists[i][0]/2, speed = None, wait_for_result = False)
 
-    T_pq = pq2tfmat(pos, quat)
-    T_now = np.eye(4)
-    T_now[:3,:3] = rotmat
-    T_now[:3,3]  = pos
+            # include reset code here in case the list doesn't exist
+            print("current joint: " , jlists[i], "  current gripper pos: ", gripper_lists[i] )
+            # joint impedance often leads to cartesian reflex error - need to reset this!
+            if ati_lists[i] == 1:
+                print("reset ati sensor")
+                self.ATI_reset()
 
-    ee_rot2 = 0.707099974155426
-    ee_z = 0.10339999943971634
-
-    # flange (link 8 ) is located in 4.5mm inside of the bolted part 
-    fl_distance =0.004212608
-    touch_distance = (48.57+1.7)/1000
-    lenspos = 2 # 2mm from outer glass
-    rgb_distance_z = (46 - lenspos)/1000
-    rgb_distance_x = 96.85/1000
-    depth_distance_z = 30.85/1000
-    depth_distance_x = 50/1000
-    depth_distance_y = -17.5/1000
-
-    touch_finz = fl_distance + touch_distance -ee_z
-    depth_finz = depth_distance_z + fl_distance - ee_z
-    rgb_finz = rgb_distance_z + fl_distance - ee_z
+            if self.r._robot_mode == 4:
+                self.r.reset_cmd()
+                # In case the 
+                break
 
 
-    # ef to ee
-    T_ef2ee = np.eye(4)
+    def pq2tfmat(self, pos, quat):
+        """
+        pos and quat to transformation matrix
+        """
+        arquat = quaternion.as_float_array(quat)
+        r = R.from_quat(arquat)
+        T_obj = np.eye(4)
+        T_obj[:3,:3] = r.as_matrix()
+        T_obj[:3,3] = pos
+        return T_obj
 
 
-    T_ee = np.eye(4)
+    def tfmat2pq(self, matrix):
+        r = R.from_matrix(matrix[:3,:3])
+        # quat = r.as_quat()
+        quat = np.quaternion(r.as_quat()[0], r.as_quat()[1], r.as_quat()[2], r.as_quat()[3])
+        pos = matrix[:3,3]
+        return pos, quat
 
-    if flag == 1:
-        # convert from ee to ef for checking (don't use this for autonomous case - trajectory needed)
-        T_w2ee = T_now
-        # for flag 1, use the edge of the densetact 1 (add 25.5mm)
-        T_ef2ee[:3,3] = np.array([0,0,touch_finz+25.5/1000])
-        T_ee = np.dot(T_w2ee, np.linalg.inv(T_ef2ee))
+    def transform(self, pos, quat, rotmat, flag=1):
+        """
+        convert position of ef pose frame to the pose of the gel
+        or convert position of real ee pose to the fake ee pose for the cartesian command 
+        ##########
+        flange quat is bullshit, let's use ori_mat in endpoint_pose()
+        rotation2quat or quat2rotation are also messing the rotation, let's not use them
+        ###########
 
-    if flag == 2:
-        # ef to ee_touch 
-        T_w2ef = T_now
-        T_ef2ee[:3,3] = np.array([0,0,touch_finz])
-        T_ee = np.dot(T_w2ef, T_ef2ee)
+        :param pos / quat: fake end-effector pose or desired end effector pose 
+        :type pos: [float] or np.ndarray
+        :type quat: quaternion.quaternion or [float] (quaternion in w,x,y,z order)
+        :type rotmat: np.ndarray((3,3)) rotation matrix
+        
+        ef: fake end effector, 
+        ee_touch: pose of DenseTact (touch)
+        ee_rgb: pose of rgb camera (rgb)
 
-    if flag == 3:
-        # ef to ee_rgb 
-        T_w2ef = T_now
-        T_ef2ee[:3,3] = np.array([rgb_distance_x,0,rgb_finz])
-        T_ee = np.dot(T_w2ef, T_ef2ee)
+        :param flag: if flag = 1, transform ee to ef (for giving commands)
+                    if flag = 2, transform ef to ee_touch
+                    if flag = 3, transform ef to ee_rgb
+                    if flag = 4, transform ef to ee_depth
+                    
+        return: pos, quat, tfmat of the true end effector 
+        """
 
-    if flag == 4:
-        # ef to ee_depth 
-        T_w2ef = T_now
-        T_ef2ee[:3,3] = np.array([depth_distance_x, depth_distance_y, depth_finz])
-        T_ee = np.dot(T_w2ef, T_ef2ee)
+        T_pq = self.pq2tfmat(pos, quat)
+        T_now = np.eye(4)
+        T_now[:3,:3] = rotmat
+        T_now[:3,3]  = pos
 
-    pos1 , quat1 = tfmat2pq(T_ee)
+        ee_rot2 = 0.707099974155426
+        ee_z = 0.10339999943971634
 
-    # IPython.embed()
+        # flange (link 8 ) is located in 4.5mm inside of the bolted part 
+        fl_distance =0.004212608
+        touch_distance = (48.57+1.7)/1000
+        lenspos = 2 # 2mm from outer glass
+        rgb_distance_z = (46 - lenspos)/1000
+        rgb_distance_x = 96.85/1000
+        depth_distance_z = 30.85/1000
+        depth_distance_x = 50/1000
+        depth_distance_y = -17.5/1000
 
-    return pos1, quat1, T_ee
+        touch_finz = fl_distance + touch_distance -ee_z
+        depth_finz = depth_distance_z + fl_distance - ee_z
+        rgb_finz = rgb_distance_z + fl_distance - ee_z
 
-def quaternion_to_matrix(q):
-    # Convert a quaternion to a 3x3 rotation matrix
-    # return np.array([[1 - 2*q.y**2 - 2*q.z**2, 2*q.x*q.y - 2*q.z*q.w, 2*q.x*q.z + 2*q.y*q.w],
-    #                  [2*q.x*q.y + 2*q.z*q.w, 1 - 2*q.x**2 - 2*q.z**2, 2*q.y*q.z - 2*q.x*q.w],
-    #                  [2*q.x*q.z - 2*q.y*q.w, 2*q.y*q.z + 2*q.x*q.w, 1 - 2*q.x**2 - 2*q.y**2]])
-    arquat = quaternion.as_float_array(q)
-    r = R.from_quat(arquat)
-    return r.as_matrix()
 
-def quaternion_inverse(q):
-    # Compute the inverse of a quaternion
-    return quaternion.as_quat_array(np.array([-q.x, -q.y, -q.z, q.w]) / np.linalg.norm(quaternion.as_float_array(q)))
+        # ef to ee
+        T_ef2ee = np.eye(4)
+        T_ee = np.eye(4)
 
-def quat_mult(q1, q0):
+        if flag == 1:
+            # convert from ee to ef for checking (don't use this for autonomous case - trajectory needed)
+            T_w2ee = T_now
+            # for flag 1, use the edge of the densetact 1 (add 25.5mm)
+            T_ef2ee[:3,3] = np.array([0,0,touch_finz+25.5/1000])
+            T_ee = np.dot(T_w2ee, np.linalg.inv(T_ef2ee))
 
-    return quaternion.as_quat_array(np.array([-q1.x * q0.x - q1.y * q0.y - q1.z * q0.z + q1.w * q0.w,
-                     q1.x * q0.w + q1.y * q0.z - q1.z * q0.y + q1.w * q0.x,
-                     -q1.x * q0.z + q1.y * q0.w + q1.z * q0.x + q1.w * q0.y,
-                     q1.x * q0.y - q1.y * q0.x + q1.z * q0.w + q1.w * q0.z], dtype=np.float64))
+        if flag == 2:
+            # ef to ee_touch 
+            T_w2ef = T_now
+            T_ef2ee[:3,3] = np.array([0,0,touch_finz])
+            T_ee = np.dot(T_w2ef, T_ef2ee)
 
-def test_pose():
+        if flag == 3:
+            # ef to ee_rgb 
+            T_w2ef = T_now
+            T_ef2ee[:3,3] = np.array([rgb_distance_x,0,rgb_finz])
+            T_ee = np.dot(T_w2ef, T_ef2ee)
 
-    pos = r.endpoint_pose()['position']
-    quat = r.endpoint_pose()['orientation']
-    rotmat = r.endpoint_pose()['ori_mat']
-    
-    pos_touch, quat_touch, tf_touch = transform(pos, quat, rotmat, 2)
-    pos_rgb, quat_rgb, tf_rgb  = transform(pos, quat, rotmat, 3)
-    pos_depth, quat_depth, tf_depth  = transform(pos, quat, rotmat, 4)
-    print("ef pose: ", r.endpoint_pose())
-    print("touch: ", pos_touch, quat_touch)
-    print(tf_touch)
-    print("rgb: ", pos_rgb, quat_rgb)
-    print(tf_rgb)
-    print("depth: ", pos_depth, quat_depth)
-    print(tf_depth)
+        if flag == 4:
+            # ef to ee_depth 
+            T_w2ef = T_now
+            T_ef2ee[:3,3] = np.array([depth_distance_x, depth_distance_y, depth_finz])
+            T_ee = np.dot(T_w2ef, T_ef2ee)
+
+        pos1 , quat1 = self.tfmat2pq(T_ee)
+
+        # IPython.embed()
+
+        return pos1, quat1, T_ee
+
+    def quaternion_to_matrix(self, q):
+        # Convert a quaternion to a 3x3 rotation matrix
+        arquat = quaternion.as_float_array(q)
+        r = R.from_quat(arquat)
+        return r.as_matrix()
+
+    def quaternion_inverse(self, q):
+        # Compute the inverse of a quaternion
+        return quaternion.as_quat_array(np.array([-q.x, -q.y, -q.z, q.w]) / np.linalg.norm(quaternion.as_float_array(q)))
+
+    def quat_mult(self, q1, q0):
+
+        return quaternion.as_quat_array(np.array([-q1.x * q0.x - q1.y * q0.y - q1.z * q0.z + q1.w * q0.w,
+                        q1.x * q0.w + q1.y * q0.z - q1.z * q0.y + q1.w * q0.x,
+                        -q1.x * q0.z + q1.y * q0.w + q1.z * q0.x + q1.w * q0.y,
+                        q1.x * q0.y - q1.y * q0.x + q1.z * q0.w + q1.w * q0.z], dtype=np.float64))
+
+    def test_pose(self):
+
+        pos = self.r.endpoint_pose()['position']
+        quat = self.r.endpoint_pose()['orientation']
+        rotmat = self.r.endpoint_pose()['ori_mat']
+        
+        pos_touch, quat_touch, tf_touch = self.transform(pos, quat, rotmat, 2)
+        pos_rgb, quat_rgb, tf_rgb  = self.transform(pos, quat, rotmat, 3)
+        pos_depth, quat_depth, tf_depth  = self.transform(pos, quat, rotmat, 4)
+        print("ef pose: ", self.r.endpoint_pose())
+        print("touch: ", pos_touch, quat_touch)
+        print(tf_touch)
+        print("rgb: ", pos_rgb, quat_rgb)
+        print(tf_rgb)
+        print("depth: ", pos_depth, quat_depth)
+        print(tf_depth)
+
+
+    def on_press(self, key):
+        try:
+            if key.char == 'q':
+                print('alphanumeric key {0} pressed'.format(key.char))
+                self.reset_flag = True
+                # self.r.reset_cmd()
+            if key.char == 'w':
+                print('remove reset flag')
+                self.reset_flag = False
+                # self.r.reset_cmd()                
+            if key.char == 'e':
+                print('start stacking the continuous trajectory')
+                self.record_cont_flag = 1
+            if key.char == 'r':
+                print('save the continuous trajectory')
+                self.record_cont_flag = 2            
+            if key.char == 't':
+                print('save the current data')
+                self.record_all_flag = 1            
+
+            if key.char == 'p':
+                print("---------------------description---------------------")
+                print("q :       reset robot and stop (depricated)")
+                print("w :       undo reset    (depricated) ")
+                print("e :       start stacking the continuous trajectory")
+                print("r :       save the continuous trajectory")
+                print("t :       save the current data")
+                # print("q :       reset robot and stop ")
+
+        except AttributeError:
+            print('special key {0} pressed'.format(
+                key))
+        
+
+    def on_release(self, key):
+        # print('{0} released'.format(
+        #     key))
+        if key == keyboard.Key.esc:
+            # Stop listener
+            rospy.loginfo("Stop keyboard listener")
+            return False
 
 if __name__ == '__main__':
-    rospy.init_node("path_recording")
-    r = ArmInterface() # create arm interface instance (see https://justagist.github.io/franka_ros_interface/DOC.html#arminterface for all available methods for ArmInterface() object)
-    cm = r.get_controller_manager() # get controller manager instance associated with the robot (not required in most cases)
-    mvt = r.get_movegroup_interface() # get the moveit interface for planning and executing trajectories using moveit planners (see https://justagist.github.io/franka_ros_interface/DOC.html#franka_moveit.PandaMoveGroupInterface for documentation)
-    gr = GripperInterface()
-    elapsed_time_ = rospy.Duration(0.0)
-    period = rospy.Duration(0.005)
-
-    r.move_to_neutral() # move robot to neutral pose
-
-    initial_pose = r.joint_angles() # get current joint angles of the robot
-
-    jac = r.zero_jacobian() # get end-effector jacobian
-
-    count = 0
-    rate = rospy.Rate(1000)
-
-    rospy.loginfo("Commanding...\n")
-    joint_names = r.joint_names()
-    vals = r.joint_angles()
-
+    rec = Record()
 
         
-    IPython.embed()
+    # IPython.embed()
