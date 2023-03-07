@@ -11,7 +11,9 @@ import pickle
 import message_filters 
 from cv_bridge import CvBridge, CvBridgeError
 from sensor_msgs.msg import Image, JointState
-
+import cv2
+import json
+from json import JSONEncoder
 
 """
 :info:
@@ -33,16 +35,22 @@ class Record(object):
         self.image_depth_sub = message_filters.Subscriber('/camera/aligned_depth_to_color/image_raw', Image)
         self.image_tact_depth_sub = message_filters.Subscriber('RunCamera/imgDepth', Image)
 
-        self.joint_sub = message_filters.Subscriber('joint_states', JointState)
+        # self.joint_sub = message_filters.Subscriber('joint_states', JointState)
 
-        ts = message_filters.ApproximateTimeSynchronizer([self.image_tact_sub, self.image_webcam_sub, self.image_depth_sub, self.image_tact_depth_sub,  self.joint_sub], queue_size=10, slop=0.1, allow_headerless=True)
+        ts = message_filters.ApproximateTimeSynchronizer([self.image_tact_sub, 
+                                                        self.image_webcam_sub, 
+                                                        self.image_depth_sub, 
+                                                        self.image_tact_depth_sub], queue_size=10, slop=0.1, allow_headerless=True)
         # ts = message_filters.TimeSynchronizer([self.image_sub, self.wrench_sub], 10)
         # ts = message_filters.ApproximateTimeSynchronizer([self.image_sub, self.wrench_sub], 1,1, allow_headerless=True)
 
 
 
-        self.savepath = os.path.join('/home/collab3/Desktop/touchnerf/recorded_dataset/')
-
+        self.savepath = os.path.join('/home/collab3/Desktop/touchnerf/')
+        self.savedepth = os.path.join(self.savepath, 'depth/train')
+        self.savecolor = os.path.join(self.savepath, 'color/train')
+        self.savetouch = os.path.join(self.savepath, 'touch/train')
+        self.savetouch_raw = os.path.join(self.savepath, 'touch_raw/train')
 
         self.r = ArmInterface() # create arm interface instance 
         self.cm = self.r.get_controller_manager() # get controller manager instance associated with the robot 
@@ -58,7 +66,7 @@ class Record(object):
  
         jac = self.r.zero_jacobian() # get end-effector jacobian
 
-        count = 0
+        self.count = 0
         self.rate = rospy.Rate(1000)
 
         self.joint_names = self.r.joint_names()
@@ -74,36 +82,181 @@ class Record(object):
 
         self.path = os.path.join('/home/collab3/Desktop/touchnerf/recorded_path/')
 
-        # self.init_keyboard()
-        listener = keyboard.Listener(on_press=self.on_press,
-                                     on_release=self.on_release)
-        listener.start()
+
         
         rospy.loginfo("reset the robot joint and move to neutral and collecting pos")
         self.r.reset_cmd()
-        self.r.move_to_neutral()
-        # self.r.move_to_collect_pos()
+        # self.r.move_to_neutral()
+        self.r.move_to_collect_pos()
 
         rospy.loginfo("select mode with integer : \n")
         rospy.loginfo("- 1: record seamlessly with one keyboard input untill it ends\n")
         rospy.loginfo("- 2: execute recorded joint lists with joint impedance controller\n")
         rospy.loginfo("note that both mode will move the robot into the neutral pose and collecting position to reset the motion. ")
 
-        IPython.embed()
-        # val = input("select mode with integer : \n")
-        # print(val)
-        # if int(val) == 1: 
-        #     # val_sr = input("record start: select frame rate (ex:0.03 s)")
-        #     # self.frrate = float(val_sr)
-        #     self.frrate = 0.03
-        #     val_filename = input('type the name for recorded file. (type sth, then the final recorded file will be : record_sth.npy)')
-        #     self.test_record_continuous(val_filename, self.frrate)
-        # if int(val) == 2:
-        #     val_traj = input("type an index of file to execute. (type sth, the executed file will be : record_sth.npy)")
-        #     self.test_execute_traj(val_traj)
 
 
+        self.pos = self.r.endpoint_pose()['position']
+        self.quat = self.r.endpoint_pose()['orientation']
+        self.rotmat = self.r.endpoint_pose()['ori_mat']
+        self.tflist_t = []
+        self.tflist_tr = []
+        self.tflist_r = []
+        self.tflist_d = []
+        # choose whatever I want
+        self.camnum = 7 
+        self.dict_t ={
+            'cameras':{
+                "camera_{}".format(self.camnum) : {
+                "w": 570,
+                "h": 570,
+                "near": 9.999999747378752e-05,
+                "far": 2.0,
+                "camera_angle_x": [0.523598849773407],
+                'types': ["touch"]
+                }
+            },
+            'frames' : {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/r_0",
+                "rotation": 0.1,
+                "transform_matrix": self.rotmat.tolist()
+            }   
+        }     
+        self.dict_tr ={
+            'cameras':{
+                "camera_{}".format(self.camnum) : {
+                "w": 570,
+                "h": 570,
+                "near": 9.999999747378752e-05,
+                "far": 2.0,
+                "camera_angle_x": [0.523598849773407],
+                'types': ["touch_raw"]
+                }
+            },
+            'frames' : {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/r_0",
+                "rotation": 0.1,
+                "transform_matrix": self.rotmat.tolist()
+            }   
+        }     
+        self.dict_r ={
+            'cameras':{
+                "camera_{}".format(self.camnum) : {
+                "w": 1920,
+                "h": 1080,
+                "near": 0.1,
+                "far": 2.0,
+                "camera_angle_x": [0.0],
+                'types': ["color"]
+                }
+            },
+            'frames' : {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/r_0",
+                "rotation": 0.1,
+                "transform_matrix": self.rotmat.tolist()
+            }   
+        }     
+        self.dict_d ={
+            'cameras':{
+                "camera_{}".format(self.camnum) : {
+                "w": 1280,
+                "h": 720,
+                "near": 0.28,
+                "far": 2.0,
+                "camera_angle_x": [0.0],
+                'types': ["depth"]
+                }
+            },
+            'frames' : {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/r_0",
+                "rotation": 0.1,
+                "transform_matrix": self.rotmat.tolist()
+            }   
+        }     
+        
+ 
+        ts.registerCallback(self.callback)
 
+        listener = keyboard.Listener(on_press=self.on_press,
+                                     on_release=self.on_release)
+        listener.start()
+        val = input("select mode with integer : \n")
+        print(val)
+        if int(val) == 1: 
+            # val_sr = input("record start: select frame rate (ex:0.03 s)")
+            # self.frrate = float(val_sr)
+            self.frrate = 0.03
+            val_filename = input('type the name for recorded file. (type sth, then the final recorded file will be : record_sth.npy)')
+            self.test_record_continuous(val_filename, self.frrate)
+        if int(val) == 2:
+            val_traj = input("type an index of file to execute. (type sth, the executed file will be : record_sth.npy)")
+            self.test_execute_traj(val_traj)
+
+
+        # IPython.embed()
+
+
+    def callback(self, touch_raw, color, depth, touch):
+        
+        print('callback working? - no, too slow')
+        img_touch_raw = self.br.imgmsg_to_cv2(touch_raw, desired_encoding='passthrough')
+        img_color = self.br.imgmsg_to_cv2(color, desired_encoding='passthrough')
+        img_depth = self.br.imgmsg_to_cv2(depth, desired_encoding='passthrough')
+        img_touch = self.br.imgmsg_to_cv2(touch, desired_encoding='passthrough')
+
+
+        self.pos = self.r.endpoint_pose()['position']
+        self.quat = self.r.endpoint_pose()['orientation']
+        self.rotmat = self.r.endpoint_pose()['ori_mat']   
+            
+
+        if self.record_all_flag == 1:
+            rospy.loginfo("record current datapoint")
+
+            cv2.imwrite(os.path.join(self.savetouch_raw, 't_{}.jpg'.format(self.count)), img_touch_raw)
+            cv2.imwrite(os.path.join(self.savecolor, 'c_{}.jpg'.format(self.count)), img_color)
+            cv2.imwrite(os.path.join(self.savedepth, 'd_{}.jpg'.format(self.count)), img_depth)
+            cv2.imwrite(os.path.join(self.savetouch, 'tr_{}.jpg'.format(self.count)), img_touch)
+
+            _,_, tf_touch = self.transform(self.pos, self.quat, self.rotmat, 2)
+            _,_, tf_rgb  = self.transform(self.pos, self.quat, self.rotmat, 3)
+            _,_, tf_depth  = self.transform(self.pos, self.quat, self.rotmat, 4)
+
+            dict_tr = {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/t_{}.jpg".format(self.count),
+                "rotation": 0.1,
+                "transform_matrix": tf_touch.tolist()
+            }  
+            dict_r = {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/c_{}.jpg".format(self.count),
+                "rotation": 0.1,
+                "transform_matrix": tf_rgb.tolist()
+            }  
+            dict_d = {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/d_{}.jpg".format(self.count),
+                "rotation": 0.1,
+                "transform_matrix": tf_depth.tolist()
+            }  
+            dict_t = {
+                "camera": "camera_{}".format(self.camnum),
+                "file_path": "./train/tr_{}.jpg".format(self.count),
+                "rotation": 0.1,
+                "transform_matrix": tf_touch.tolist()
+            }  
+            self.tflist_t.append(dict_t)
+            self.tflist_tr.append(dict_tr)
+            self.tflist_r.append(dict_r)
+            self.tflist_d.append(dict_d)
+
+            self.record_all_flag =0
+            self.count +=1
 
 
     def test_record_continuous(self, filename, record_period=0.5):
@@ -114,42 +267,51 @@ class Record(object):
         # rospy.loginfo("Now please push the User stop button and feel free to move the robot!")
         rospy.loginfo("feel free to move the robot! ")
 
+
+
         while not rospy.is_shutdown():
+            # move robot freely
             self.r.set_joint_torques(dict(zip(self.joint_names, [0.0]*7))) # send 0 torques
 
             if self.record_cont_flag == 1:
-                p2 = self.r.endpoint_pose()
+
                 q1 = self.r.joint_angles()
                 self.result.append(self.r.convertToList(q1))
 
                 rospy.sleep(record_period)
-                rospy.loginfo("recorded! {}th path. ".format(len(self.result)))
-
-                if self.record_all == 1:
-                    rospy.loginfo("record current datapoint")
-                    # threading problem..
-                    self.result_ati[len(self.result)-1] = 1
-                    self.record_ati_flag = 0
-                    self.ATI_reset()
-                
+                if len(self.result) % 500 == 1:
+                    rospy.loginfo("recorded! {}th path. ".format(len(self.result)))
 
             # else:
             #     rospy.sleep(0.3)
 
             if self.record_cont_flag == 2:
-               with open (os.path.join(self.path, 'record_{}.txt'.format(filename)), 'wb') as f:
-                    result_total = [self.result, self.result_ati, self.result_gr]
-                    pickle.dump(result_total, f)  
+                with open (os.path.join(self.path, 'record_{}.txt'.format(filename)), 'wb') as f:
+
+                    pickle.dump(self.result, f)  
+
+                self.dict_t['frames'] = self.tflist_t
+                self.dict_tr['frames'] = self.tflist_tr
+                self.dict_r['frames'] = self.tflist_r
+                self.dict_d['frames'] = self.tflist_d
+
+                json_t = json.dumps(self.dict_t, indent=4)  # use dump() to write array into file
+                json_tr = json.dumps(self.dict_tr, indent=4)  # use dump() to write array into file
+                json_d = json.dumps(self.dict_d, indent=4)  # use dump() to write array into file
+                json_r = json.dumps(self.dict_r, indent=4)  # use dump() to write array into file
+
+                with open(os.path.join(self.savetouch, "./transforms_train.json"), "w") as outfile:
+                    outfile.write(json_t)
+                with open(os.path.join(self.savetouch_raw, "./transforms_train.json"), "w") as outfile:
+                    outfile.write(json_tr)
+                with open(os.path.join(self.savedepth, "./transforms_train.json"), "w") as outfile:
+                    outfile.write(json_d)
+                with open(os.path.join(self.savecolor, "./transforms_train.json"), "w") as outfile:
+                    outfile.write(json_r)
+
+                self.record_cont_flag = 0
 
 
-            #    with open('record_ati_{}.npy'.format(filename), 'wb') as ff:
-            #         np.save(ff, self.result_ati)
-               
-            #    with open('record_gr_{}.npy'.format(filename), 'wb') as ff:
-            #         np.save(ff, self.result_gr)
-               
-
-               self.record_cont_flag = 0
 
     def test_execute_traj(self, filename):
         """
@@ -374,7 +536,7 @@ class Record(object):
                 print('save the continuous trajectory')
                 self.record_cont_flag = 2            
             if key.char == 't':
-                print('save the current data')
+                print('save the current data on the list ')
                 self.record_all_flag = 1            
 
             if key.char == 'p':
