@@ -41,7 +41,8 @@ if __name__ == '__main__':
     elapsed_time_ = rospy.Duration(0.0)
     period = rospy.Duration(0.005)
 
-    r.move_to_neutral() # move robot to neutral pose
+    # r.move_to_neutral() # move robot to neutral pose
+    r.move_to_collect_pos() # move robot to neutral pose
 
     initial_pose = r.joint_angles() # get current joint angles of the robot
 
@@ -55,23 +56,9 @@ if __name__ == '__main__':
     vals = r.joint_angles()
 
 
+    # while not rospy.is_shutdown():
+    #     # move robot freely
+    #     r.set_joint_torques(dict(zip(joint_names, [0.0]*7))) # send 0 torques
 
-
-        
     IPython.embed()
 
-    # while not rospy.is_shutdown():
-
-    #     elapsed_time_ += period
-
-    #     delta = 3.14 / 16.0 * (1 - np.cos(3.14 / 5.0 * elapsed_time_.to_sec())) * 0.2
-
-    #     for j in joint_names:
-    #         if j == joint_names[4]:
-    #             vals[j] = initial_pose[j] - delta
-    #         else:
-    #             vals[j] = initial_pose[j] + delta
-
-    #     # r.set_joint_positions(vals) # for position control. Slightly jerky motion.
-    #     r.set_joint_positions_velocities([vals[j] for j in joint_names], [0.0]*7) # for impedance control
-    #     rate.sleep()
