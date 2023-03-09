@@ -38,21 +38,21 @@ A script for creating a simple environment as a PlanningScene. This script runs
 by default when interface.launch is started, but can be disabled using argument.
 """
 
-ARMLab_workspace = [
+IRLab_workspace = [
            {
            'name': 'back_wall',
-           'pose': create_pose_stamped_msg(position = [-0.4,0.0,0.5], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'pose': create_pose_stamped_msg(position = [-0.57,0.0,0.5], orientation = [1,0,0,0], frame = 'panda_link0'),
            'size': [0.1,1.8,1]
            },
-          #  {
-          #  'name': 'side_wall',
-          #  'pose': create_pose_stamped_msg(position = [-0.3,-0.85,0.5], orientation = [1,0,0,0], frame = 'panda_link0'),
-          #  'size': [0.6,0.1,1]
-          #  },
+           {
+           'name': 'side_wall',
+           'pose': create_pose_stamped_msg(position = [-0.3,-0.85,0.5], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': [0.6,0.1,1]
+           },
            {
            'name': 'table',
-           'pose': create_pose_stamped_msg(position = [0.25,-0.0,0], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'size': [1.3,1.3,0.02]
+           'pose': create_pose_stamped_msg(position = [0.45,-0.0,0], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': [2,1.8,0.02]
            },
            {
            'name': 'controller_box',
@@ -60,9 +60,9 @@ ARMLab_workspace = [
            'size': [0.4,0.6,0.16]
            },
            {
-           'name': 'object_soccerball',
-           'pose': create_pose_stamped_msg(position = [0.5,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'size': [0.2,0.2,0.15]
+           'name': 'equipment_box',
+           'pose': create_pose_stamped_msg(position = [-0.35,-0.68,0.17], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': [0.46,0.4,0.34]
            }
             ]
 
@@ -75,7 +75,7 @@ def main():
 
     rospy.sleep(1) # ----- Not having this delay sometimes caused failing to create some boxes
 
-    for config in ARMLab_workspace:
+    for config in IRLab_workspace:
 
         rospy.loginfo("-- Creating object: {}..".format(config['name']))
         success = scene.add_box(**config)
