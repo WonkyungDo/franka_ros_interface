@@ -51,21 +51,25 @@ ARMLab_workspace = [
           #  },
            {
            'name': 'table',
-           'pose': create_pose_stamped_msg(position = [0.25,-0.0,0], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'size': [1.3,1.3,0.02]
+           'pose': create_pose_stamped_msg(position = [0.18,-0.0,0], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': [0.915,1.229,0.02]
            },
            {
            'name': 'controller_box',
            'pose': create_pose_stamped_msg(position = [-0.37,0.55,0.08], orientation = [1,0,0,0], frame = 'panda_link0'),
            'size': [0.4,0.6,0.16]
-           },
-           {
-           'name': 'object_soccerball',
-           'pose': create_pose_stamped_msg(position = [0.5,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'size': [0.2,0.2,0.15]
            }
-            ]
 
+            ]
+ARMLab_obj = [
+              {
+           'name': 'object_soccerball',
+           'pose': create_pose_stamped_msg(position = [0.545,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': 0.15
+              }
+
+
+            ]
 
 
 def main():
@@ -82,7 +86,13 @@ def main():
         rospy.loginfo("------ {}".format("success" if success else "FAILED!"))
 
     rospy.loginfo("Created Demo Planning Scene.")
+    for config in ARMLab_obj:
 
+        rospy.loginfo("-- Creating object: {}..".format(config['name']))
+        success = scene.add_sphere(**config)
+        rospy.loginfo("------ {}".format("success" if success else "FAILED!"))
+
+    rospy.loginfo("Created object in planning scene.")
   except rospy.ROSInterruptException:
     return
   except KeyboardInterrupt:
