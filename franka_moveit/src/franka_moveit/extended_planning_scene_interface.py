@@ -53,6 +53,7 @@ class ExtendedPlanningSceneInterface(moveit_commander.PlanningSceneInterface):
         moveit_commander.PlanningSceneInterface.add_box(self, name = name, pose = pose, size=size)
         return self._wait_for_state_update(object_name = name, object_is_known=True, timeout=timeout)
 
+    #wkdo
     def add_sphere(self, name, pose, radius, timeout = 5):
         """
         Add object to scene and check if it is created.
@@ -64,14 +65,34 @@ class ExtendedPlanningSceneInterface(moveit_commander.PlanningSceneInterface):
 
         :type name: str
         :type pose: geometry_msgs.msg.PoseStamped
-        :type radius: float (len 1)
+        :type radius: float 
         :type timeout: float
         """
 
         moveit_commander.PlanningSceneInterface.add_sphere(self, name = name, pose = pose, radius=radius)
         return self._wait_for_state_update(object_name = name, object_is_known=True, timeout=timeout)
 
+    # def attach_box(self, link, name, pose=None, size=(1, 1, 1), touch_links=[]):
+    #wkdo
+    def attach_box(self, name, pose, size, link, touch_links, timeout = 5):
+        """
+        attach box to created robot
 
+        :param name: name of object
+        :param pose: desired pose for the box (Use :py:func:`franka_moveit.utils.create_pose_stamped_msg`)
+        :param radius: radius of the box
+        :param link: name of attached link
+        :param touch_links: name of link exclude from collision
+        :param timeout: time in sec to wait while checking if box is created 
+
+        :type name: str
+        :type pose: geometry_msgs.msg.PoseStamped
+        :type size: [float] (len 3)
+        :type timeout: float
+        """
+
+        moveit_commander.PlanningSceneInterface.attach_box(self, link, name, pose=pose, size=size, touch_links=touch_links)
+        return self._wait_for_state_update(object_name = name, object_is_known=True, timeout=timeout)
 
 
     def _wait_for_state_update(self, object_name, object_is_known=False, object_is_attached=False, timeout=5):

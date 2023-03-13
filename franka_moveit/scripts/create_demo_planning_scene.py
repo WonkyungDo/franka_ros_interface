@@ -65,12 +65,18 @@ ARMLab_obj = [
               {
            'name': 'object_soccerball',
            'pose': create_pose_stamped_msg(position = [0.545,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'size': 0.15
+           'radius': 0.075
               }
-
-
             ]
-
+ARMLab_ees = [
+              {
+           'name': 'cams',
+           'pose': create_pose_stamped_msg(position = [0.13,-0.0,0.93], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'size': [0.13,0.14,0.05],
+           'link': 'panda_link8',
+           'touch_links': ['panda_link7', 'panda_link8', 'panda_hand']
+              }
+            ]
 
 def main():
   try:
@@ -89,10 +95,19 @@ def main():
     for config in ARMLab_obj:
 
         rospy.loginfo("-- Creating object: {}..".format(config['name']))
+        ###########adding sphere for now
         success = scene.add_sphere(**config)
-        rospy.loginfo("------ {}".format("success" if success else "FAILED!"))
 
+
+        rospy.loginfo("------ {}".format("success" if success else "FAILED!"))
     rospy.loginfo("Created object in planning scene.")
+
+    ### attach camera in the scene
+    # for config in ARMLab_ees:
+
+    #   success = scene.attach_box(**config)
+    #   rospy.loginfo("------ {}".format("success" if success else "FAILED!"))
+
   except rospy.ROSInterruptException:
     return
   except KeyboardInterrupt:

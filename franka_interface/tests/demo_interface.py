@@ -55,10 +55,10 @@ if __name__ == '__main__':
     joint_names = r.joint_names()
     vals = r.joint_angles()
 
+    IPython.embed()
 
     # while not rospy.is_shutdown():
     #     # move robot freely
     #     r.set_joint_torques(dict(zip(joint_names, [0.0]*7))) # send 0 torques
 
-    IPython.embed()
 
