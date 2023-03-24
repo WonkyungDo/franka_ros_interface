@@ -7,7 +7,7 @@
   <arg name="start_moveit" default="true" />
   <arg name="fake_execution" default="false" /> <!-- Only valid if running moveit movegroup (start_moveit:=true) -->
   <arg name="load_demo_planning_scene" default="true"/>
-  <arg name="EE" default="_touchnerf"/> <!-- four different type of end effector: none(default, _touchnerf, _screwsort, _allegro-->
+  <arg name="EE" default="_allegro"/> <!-- four different type of end effector: none(default), _touchnerf, _screwsort, _allegro-->
 
 
   <!-- Panda Control Interface -->
