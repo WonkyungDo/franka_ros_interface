@@ -41,8 +41,8 @@ if __name__ == '__main__':
     elapsed_time_ = rospy.Duration(0.0)
     period = rospy.Duration(0.005)
 
-    r.move_to_neutral() # move robot to neutral pose
-    # r.move_to_collect_pos() # move robot to neutral pose
+    # r.move_to_neutral() # move robot to neutral pose
+    r.move_to_collect_pos() # move robot to collect pose
 
     initial_pose = r.joint_angles() # get current joint angles of the robot
 
