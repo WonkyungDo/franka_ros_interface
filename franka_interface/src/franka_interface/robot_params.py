@@ -74,6 +74,118 @@ class RobotParams(object):
 
         return sim
 
+########################### for experiment ##########################
+
+    def get_pose_undeformed(self):
+        """
+        Get pose_undeformed pose joint positions from parameter server 
+        (/robot_config/pose_undeformed)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose_undeformed = rospy.get_param("/robot_config/pose_undeformed")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose_undeformed joint pos."
+                         " under param /franka_control/pose_undeformed")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose_undeformed
+
+    def get_pose_undeformed2(self):
+        """
+        Get pose_undeformed2 pose joint positions from parameter server 
+        (/robot_config/pose_undeformed2)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose_undeformed2 = rospy.get_param("/robot_config/pose_undeformed2")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose_undeformed2 joint pos."
+                         " under param /franka_control/pose_undeformed2")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose_undeformed2
+
+    def get_pose1(self):
+        """
+        Get pose1 pose joint positions from parameter server 
+        (/robot_config/pose1)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose1 = rospy.get_param("/robot_config/pose1")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose1 joint pos."
+                         " under param /franka_control/pose1")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose1
+
+    def get_pose2(self):
+        """
+        Get pose2 pose joint positions from parameter server 
+        (/robot_config/pose2)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose2 = rospy.get_param("/robot_config/pose2")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose2 joint pos."
+                         " under param /franka_control/pose2")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose2
+    
+    def get_pose3(self):
+        """
+        Get pose3 pose joint positions from parameter server 
+        (/robot_config/pose3)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose3 = rospy.get_param("/robot_config/pose3")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose3 joint pos."
+                         " under param /franka_control/pose3")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose3
+    
+    def get_pose4(self):
+        """
+        Get pose4 pose joint positions from parameter server 
+        (/robot_config/pose4)
+
+        :return: Joint positions of the robot as defined in parameter server.
+        :rtype: [type]
+        """
+        try:
+            pose4 = rospy.get_param("/robot_config/pose4")
+        except KeyError:
+            rospy.logerr("RobotParam: robot_ip cannot detect pose4 joint pos."
+                         " under param /franka_control/pose4")
+        except (socket.error, socket.gaierror):
+            _log_networking_error()
+
+        return pose4
+
+########################### for experiment ##########################
+
     def get_neutral_pose(self):
         """
         Get neutral pose joint positions from parameter server 

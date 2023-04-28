@@ -174,6 +174,17 @@ class ArmInterface(object):
         self._neutral_pose_joints = self._params.get_neutral_pose()
         #wkdo collecting pose joint positions
         self._collecting_pose_joints = self._params.get_collecting_pose()
+
+######## experiment ########
+        self._pose_undeformed_joints = self._params.get_pose_undeformed()
+        self._pose_undeformed2_joints = self._params.get_pose_undeformed2()
+        self._pose1_joints = self._params.get_pose1()
+        self._pose2_joints = self._params.get_pose2()
+        self._pose3_joints = self._params.get_pose3()
+        self._pose4_joints = self._params.get_pose4()
+
+######## experiment ########
+
         #wkdo reset pose joint positions
         self._reset_pose_joints = self._params.get_reset_pose()
 
@@ -726,6 +737,31 @@ class ArmInterface(object):
         Collision thresholds can be set using instance of :py:class:`franka_tools.CollisionBehaviourInterface`.
         """
         return any(self._joint_collision) or any(self._cartesian_collision)
+
+
+######## experiment ########
+    def move_to_pose_undeformed(self, timeout=15.0, speed=0.15):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose_undeformed_joints, timeout)
+    def move_to_pose_undeformed2(self, timeout=15.0, speed=0.15):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose_undeformed2_joints, timeout)
+    def move_to_pose1(self, timeout=15.0, speed=0.0005):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose1_joints, timeout)
+    def move_to_pose2(self, timeout=15.0, speed=0.0005):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose2_joints, timeout)
+    def move_to_pose3(self, timeout=15.0, speed=0.0005):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose3_joints, timeout)
+    def move_to_pose4(self, timeout=15.0, speed=0.0005):
+        self.set_joint_position_speed(speed)
+        self.move_to_joint_positions(self._pose4_joints, timeout)
+
+######## experiment ########
+
+
 
     def move_to_neutral(self, timeout=15.0, speed=0.15):
         """

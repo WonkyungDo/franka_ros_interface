@@ -31,6 +31,20 @@ def gripper_test(max):
         gr.move_joints(0.002*(max-1-i),speed = None,wait_for_result=a)
         print("i: ", i)
 
+def run_continuous():
+    r.move_to_collect_pos()
+    r.move_to_pose_undeformed()
+    r.move_to_pose2()
+    rospy.sleep(0.2)
+    r.move_to_pose_undeformed(speed=0.001)
+    rospy.sleep(1)
+    r.move_to_pose_undeformed2()
+    r.move_to_pose4()
+    rospy.sleep(0.2)
+    r.move_to_pose_undeformed2(speed=0.001)
+    r.move_to_collect_pos()
+    print('done!')
+
 if __name__ == '__main__':
     rospy.init_node("path_recording")
     r = ArmInterface() # create arm interface instance (see https://justagist.github.io/franka_ros_interface/DOC.html#arminterface for all available methods for ArmInterface() object)

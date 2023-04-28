@@ -37,6 +37,60 @@ robot_config:
         panda_joint6: 2.2792713105123803 
         panda_joint7: 0.753693321040935
 
+    pose_undeformed:
+        panda_joint1: -0.010422303364595799
+        panda_joint2: 0.26857981667646746
+        panda_joint3: -0.006368918233469389
+        panda_joint4: -2.1733175249601664
+        panda_joint5: -0.0034871803985793326
+        panda_joint6: 2.433989388121499
+        panda_joint7: 0.7683675387418931
+
+    pose1:
+        panda_joint1: -0.01021096985721838
+        panda_joint2: 0.2768584573101585
+        panda_joint3: -0.004917372449524618
+        panda_joint4: -2.1732639993896763
+        panda_joint5: -0.003489720141732147
+        panda_joint6: 2.4377258550870597
+        panda_joint7: 0.768375503277656
+
+    pose2:
+        panda_joint1: -0.01020790333402046
+        panda_joint2: 0.2800524360251774
+        panda_joint3: -0.004965964485154001
+        panda_joint4: -2.172054052888778
+        panda_joint5: -0.00369166454155412
+        panda_joint6: 2.438934453618295
+        panda_joint7: 0.767877448733567
+
+    pose_undeformed2:
+        panda_joint1: 0.01777338214244759
+        panda_joint2: 0.2758376222158733
+        panda_joint3: -0.0744730108537172
+        panda_joint4: -2.149218857803999
+        panda_joint5: -0.003666772347150577
+        panda_joint6: 2.390657784117592
+        panda_joint7: 0.7153880630847231
+
+    pose3:
+        panda_joint1: 0.017676215794264222
+        panda_joint2: 0.2943181867855102
+        panda_joint3: -0.07242269966767312
+        panda_joint4: -2.1534060189978734
+        panda_joint5: -0.003468590844723239
+        panda_joint6: 2.40623620349832
+        panda_joint7: 0.7167686473247078
+
+    pose4:
+        panda_joint1: 0.017568111975975256
+        panda_joint2: 0.2991553466612832
+        panda_joint3: -0.07292188268441585
+        panda_joint4: -2.1523708896065545
+        panda_joint5: -0.003538315692387975
+        panda_joint6: 2.406312129749192
+        panda_joint7: 0.7167616409973965
+
     reset_pose:
         panda_joint1: -0.022741129955352355
         panda_joint2: -0.35965990199494513  

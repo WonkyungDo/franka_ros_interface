@@ -64,10 +64,17 @@ ARMLab_workspace = [
 ARMLab_obj = [
               {
            'name': 'object_soccerball',
-           'pose': create_pose_stamped_msg(position = [0.545,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
-           'radius': 0.075
+           'pose': create_pose_stamped_msg(position = [0.545,-0.0,0.1], orientation = [1,0,0,0], frame = 'panda_link0'),
+           'radius': 0.015
               }
             ]
+# ARMLab_obj = [
+#               {
+#            'name': 'object_soccerball',
+#            'pose': create_pose_stamped_msg(position = [0.545,-0.0,0.075], orientation = [1,0,0,0], frame = 'panda_link0'),
+#            'radius': 0.075
+#               }
+#             ]
 ARMLab_ees = [
               {
            'name': 'cams',
