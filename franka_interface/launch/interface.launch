@@ -62,9 +62,13 @@
                                            franka_ros_interface/position_joint_position_controller"/>
   </group>
 
-  <node pkg="tf" type="static_transform_publisher" name="EE_to_camrgb" args="0.099465242256448 -0.000298863626652 -0.051120799439716 -0.0020932 -0.0130513 0.7097253 0.7043546 panda_EE rgb 100" />                                                                      
+  <!-- <node pkg="tf" type="static_transform_publisher" name="EE_to_camrgb" args="0.099465242256448 -0.000298863626652 -0.051120799439716 -0.0020932 -0.0130513 0.7097253 0.7043546 panda_EE rgb 100" />                                                                      
   <node pkg="tf" type="static_transform_publisher" name="EE_to_camtouch" args="0 0 -0.04891739143971634 0 0 0 1 panda_EE touch 100" />                                                                      
-  <node pkg="tf" type="static_transform_publisher" name="EE_to_camdepth" args="0.05 -0.0175 -0.06833739143971634 0 0 0.7071068 0.7071068 panda_EE depth 100" />                                                                      
+  <node pkg="tf" type="static_transform_publisher" name="EE_to_camdepth" args="0.05 -0.0175 -0.06833739143971634 0 0 0.7071068 0.7071068 panda_EE depth 100" />                                                                       -->
+
+
+  <node pkg="tf" type="static_transform_publisher" name="hand_to_cameraoptfr" args="0.053698 -0.0458152 -0.118652 0.0204253 0.0032536 0.6899715 0.723541 panda_hand camera_color_optical_frame 100" />  
+  <node pkg="tf" type="static_transform_publisher" name="rgb2depth" args="0 0 0 0 0 0 1 camera_color_optical_frame camera_depth_optical_frame 100" />                                                                      
 
   <node pkg="tf" type="static_transform_publisher" name="base_to_link0" args="0 0 0 0 0 0 1 base panda_link0 100" />                                                                      
   <node pkg="tf" type="static_transform_publisher" name="world_to_base" args="0 0 0 0 0 0 1 world base 100" />                                                                      

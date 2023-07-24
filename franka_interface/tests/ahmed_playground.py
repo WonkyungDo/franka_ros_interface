@@ -5,45 +5,25 @@ from franka_interface import GripperInterface
 import IPython
 """
 :info:
-    Move robot using low-level controllers
+    1. subscribe the topic '/camera/depth/color/points' and get the pointcloud in real time
+        - https://github.com/jhu-lcsr/handeye_calib_camodocal
+        - 
+    2. determine ROI in world frame 
+    3. filter out the pointcloud 
+    3. detect the maximum z value among the ROI
+    4. find the x,y position of the max z value point, and use it for moving the robot arm 
+    5. write a code to send a message to the other ros master (laptop ros master) (Won)
+    6. write a code to receive a message from other ros master, and use that to move the robot
 
-    1. record the joint position without selecting velocity with joint impedance control 
-
-    ## how to set up the impedance stiffness on here ?    
-
-    WARNING: The robot will move slightly (small arc swinging motion side-to-side) till code is killed.
 """
 
-def gripper_test(max):
+## hand-eye calibration result
+#   0.047847  -0.998313  0.0328943   0.053698
+#   0.998579  0.0470338 -0.0250674 -0.0458152
+#  0.0234779  0.0340469   0.999144  -0.118652
+#          0          0          0          1
 
-    for i in range(max):
-        if i==0:
-            a = True
-        else:
-            a= False
-        gr.move_joints(0.002*(i),speed = None,wait_for_result=a)
-        print("i: ", i)
-    for i in range(max):
-        if i==0:
-            a = True
-        else:
-            a= False
-        gr.move_joints(0.002*(max-1-i),speed = None,wait_for_result=a)
-        print("i: ", i)
 
-def run_continuous():
-    r.move_to_collect_pos()
-    r.move_to_pose_undeformed()
-    r.move_to_pose2()
-    rospy.sleep(0.2)
-    r.move_to_pose_undeformed(speed=0.001)
-    rospy.sleep(1)
-    r.move_to_pose_undeformed2()
-    r.move_to_pose4()
-    rospy.sleep(0.2)
-    r.move_to_pose_undeformed2(speed=0.001)
-    r.move_to_collect_pos()
-    print('done!')
 
 if __name__ == '__main__':
     rospy.init_node("path_recording")
