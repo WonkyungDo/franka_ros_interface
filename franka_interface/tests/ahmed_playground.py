@@ -7,7 +7,7 @@ import IPython
 :info:
     1. subscribe the topic '/camera/depth/color/points' and get the pointcloud in real time
         - https://github.com/jhu-lcsr/handeye_calib_camodocal
-        - 
+        - http://wiki.ros.org/ROS/Tutorials/WritingPublisherSubscriber%28python%29
     2. determine ROI in world frame 
     3. filter out the pointcloud 
     3. detect the maximum z value among the ROI
