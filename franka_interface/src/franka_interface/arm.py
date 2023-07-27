@@ -176,12 +176,12 @@ class ArmInterface(object):
         self._collecting_pose_joints = self._params.get_collecting_pose()
 
 ######## experiment ########
-        self._pose_undeformed_joints = self._params.get_pose_undeformed()
-        self._pose_undeformed2_joints = self._params.get_pose_undeformed2()
-        self._pose1_joints = self._params.get_pose1()
-        self._pose2_joints = self._params.get_pose2()
-        self._pose3_joints = self._params.get_pose3()
-        self._pose4_joints = self._params.get_pose4()
+        # self._pose_undeformed_joints = self._params.get_pose_undeformed()
+        # self._pose_undeformed2_joints = self._params.get_pose_undeformed2()
+        # self._pose1_joints = self._params.get_pose1()
+        # self._pose2_joints = self._params.get_pose2()
+        # self._pose3_joints = self._params.get_pose3()
+        # self._pose4_joints = self._params.get_pose4()
 
 ######## experiment ########
 
@@ -740,24 +740,26 @@ class ArmInterface(object):
 
 
 ######## experiment ########
-    def move_to_pose_undeformed(self, timeout=15.0, speed=0.15):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose_undeformed_joints, timeout)
-    def move_to_pose_undeformed2(self, timeout=15.0, speed=0.15):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose_undeformed2_joints, timeout)
-    def move_to_pose1(self, timeout=15.0, speed=0.0005):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose1_joints, timeout)
-    def move_to_pose2(self, timeout=15.0, speed=0.0005):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose2_joints, timeout)
-    def move_to_pose3(self, timeout=15.0, speed=0.0005):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose3_joints, timeout)
-    def move_to_pose4(self, timeout=15.0, speed=0.0005):
-        self.set_joint_position_speed(speed)
-        self.move_to_joint_positions(self._pose4_joints, timeout)
+    # def move_to_pose_undeformed(self, timeout=15.0, speed=0.15):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose_undeformed_joints, timeout)
+    # def move_to_pose_undeformed2(self, timeout=15.0, speed=0.15):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose_undeformed2_joints, timeout)
+    # def move_to_pose1(self, timeout=15.0, speed=0.0005):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose1_joints, timeout)
+    # def move_to_pose2(self, timeout=15.0, speed=0.0005):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose2_joints, timeout)
+    # def move_to_pose3(self, timeout=15.0, speed=0.0005):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose3_joints, timeout)
+    # def move_to_pose4(self, timeout=15.0, speed=0.0005):
+    #     self.set_joint_position_speed(speed)
+    #     self.move_to_joint_positions(self._pose4_joints, timeout)
+
+
 
 ######## experiment ########
 
