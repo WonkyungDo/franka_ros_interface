@@ -45,12 +45,14 @@ class MoveRobot(object):
 
 
         # subscribe topic cmd_grasp_done
-        self.sub = rospy.Subscriber("/cmd_grasp_done", String, self.callback)
+        self.sub = rospy.Subscriber("/cmd_manip2frarm", String, self.callback)
         # subscribe topic camera/depth/color/points, which is sensor_msgs/PointCloud2
-        self.sub2 = rospy.Subscriber("/camera/depth/color/points", PointCloud2, self.callback2)
+        self.sub2 = rospy.Subscriber("/camera/depth/color/points", PointCloud2, self.callback_pt)
         
         # make a publisher for the topic cmd_grasp_possible
-        self.pub = rospy.Publisher("/cmd_grasp_possible", String, queue_size=10)
+        self.pub = rospy.Publisher("/cmd_frarm2manip", String, queue_size=10)
+        self.r.reset_cmd()
+
         self.r.move_to_neutral() # move robot to neutral pose
 
         self.qmax = self.r._joint_limits.position_upper
@@ -65,9 +67,11 @@ class MoveRobot(object):
             'capture': [-0.01776863430649565, -0.5752911768879806, -0.0014327665769906077, -2.4567381506938766, 0.005926176737607526, 1.8773310657562692, 0.7997468734019023],
             'box1': [0.7731950474831923, 0.18092087803598036, 0.2100551255464722, -2.1853637098727723, 0.014617465191375212, 2.380719539162588, 0.2648497067805793],
             'box2': [0.7737509407118746, 0.0013466285058570894, 0.5478241150755632, -2.415992416493514, 0.06459920577870473, 2.4111426511597047, 0.58313301555406],
-            'box3': [0.7729797377455772, -0.009179683106841089, 0.9030471085531765, -2.4429453251489983, 0.07182425998340045, 2.4800675805135977, 0.8934132201079438]
+            'box3': [0.7729797377455772, -0.009179683106841089, 0.9030471085531765, -2.4429453251489983, 0.07182425998340045, 2.4800675805135977, 0.8934132201079438],
+            'grasp': [0.00005878003883383008, 0.17806044415005465, -0.017142348940958056, -2.481688746996297, -0.05318302649530643, 2.6947723936131105, 0.8231430976682204],
+            'aftergrab': [-0.001017179476466228, 0.002690245226212858, -0.01736713095135724, -2.436764425393494, -0.051719546543227295, 2.4657612768544093, 0.818422098840582]
         }
-    
+
         if pose in joint_values:
             jointinfo = {f'panda_joint{i+1}': value for i, value in enumerate(joint_values[pose])}
             self.r.move_to_joint_positions(jointinfo)
@@ -96,14 +100,13 @@ class MoveRobot(object):
 
     def callback(self, data):
         '''
-        callback function for the topic cmd_grasp_done
+        callback function for the topic cmd_manip2frarm
         '''
-        if data.data == "True":
-            self.grasp_done = True
-        else:
-            self.grasp_done = False
+        dataparse = data.data
+        print(dataparse)
 
-    def callback2(self, data):
+
+    def callback_pt(self, data):
         '''
         callback function for the topic camera/depth/color/points
         '''
