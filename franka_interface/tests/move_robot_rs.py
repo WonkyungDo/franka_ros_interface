@@ -90,13 +90,14 @@ class MoveRobot(object):
         self.r.move_to_joint_positions(jointinfo)
 
     def pose_box1(self):
-        jointinfo = {'panda_joint1': 0.7729921011380981,
-        'panda_joint2': 0.11634539793173276,
-        'panda_joint3': 0.20799404094116383,
-        'panda_joint4': -2.180416739116452,
-        'panda_joint5': 0.014215930228394342,
-        'panda_joint6': 2.341144260843104,
-        'panda_joint7': 0.2641798097805844}
+        jointinfo = {'panda_joint1': 0.7731950474831923,
+        'panda_joint2': 0.18092087803598036,
+        'panda_joint3': 0.2100551255464722,
+        'panda_joint4': -2.1853637098727723,
+        'panda_joint5': 0.014617465191375212,
+        'panda_joint6': 2.380719539162588,
+        'panda_joint7': 0.2648497067805793}
+
         self.r.move_to_joint_positions(jointinfo)
     def pose_box2(self):
         jointinfo = {'panda_joint1': 0.7737509407118746,
