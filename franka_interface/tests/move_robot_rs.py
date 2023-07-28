@@ -58,67 +58,21 @@ class MoveRobot(object):
         self.vec = np.array([0,0,0,0,0,0])
         IPython.embed()
 
-    def pose_neutral(self):
-        jointinfo = {'panda_joint1': -0.018547689576012733,
-        'panda_joint2': -0.2461723706646197,
-        'panda_joint3': -0.023036539644439233,
-        'panda_joint4': -2.2878067552543797,
-        'panda_joint5': 0.005773262290052329,
-        'panda_joint6': 2.0479569244119857,
-        'panda_joint7': 0.7606290224128299}
-
-        self.r.move_to_joint_positions(jointinfo)
-
-    def pose_center(self):
-        jointinfo = {'panda_joint1': -0.013806841693426431,
-        'panda_joint2': 0.11430030356041568,
-        'panda_joint3': -0.014276523361211282,
-        'panda_joint4': -2.4653910632050673,
-        'panda_joint5': 0.02990387377474043,
-        'panda_joint6': 2.585086940103107,
-        'panda_joint7': 0.7522658954954738}
-        self.r.move_to_joint_positions(jointinfo)
-
-    def pose_capture(self):
-        jointinfo = {'panda_joint1': -0.01776863430649565,
-        'panda_joint2': -0.5752911768879806,
-        'panda_joint3': -0.0014327665769906077,
-        'panda_joint4': -2.4567381506938766,
-        'panda_joint5': 0.005926176737607526,
-        'panda_joint6': 1.8773310657562692,
-        'panda_joint7': 0.7997468734019023}
-        self.r.move_to_joint_positions(jointinfo)
-
-    def pose_box1(self):
-        jointinfo = {'panda_joint1': 0.7731950474831923,
-        'panda_joint2': 0.18092087803598036,
-        'panda_joint3': 0.2100551255464722,
-        'panda_joint4': -2.1853637098727723,
-        'panda_joint5': 0.014617465191375212,
-        'panda_joint6': 2.380719539162588,
-        'panda_joint7': 0.2648497067805793}
-
-        self.r.move_to_joint_positions(jointinfo)
-    def pose_box2(self):
-        jointinfo = {'panda_joint1': 0.7737509407118746,
-        'panda_joint2': 0.0013466285058570894,
-        'panda_joint3': 0.5478241150755632,
-        'panda_joint4': -2.415992416493514,
-        'panda_joint5': 0.06459920577870473,
-        'panda_joint6': 2.4111426511597047,
-        'panda_joint7': 0.58313301555406}
-        self.r.move_to_joint_positions(jointinfo)
-    def pose_box3(self):
-        jointinfo = {'panda_joint1': 0.7729797377455772,
-        'panda_joint2': -0.009179683106841089,
-        'panda_joint3': 0.9030471085531765,
-        'panda_joint4': -2.4429453251489983,
-        'panda_joint5': 0.07182425998340045,
-        'panda_joint6': 2.4800675805135977,
-        'panda_joint7': 0.8934132201079438}
-
-        self.r.move_to_joint_positions(jointinfo)
-
+    def pose_run(self, pose):
+        joint_values = {
+            'neutral': [-0.018547689576012733, -0.2461723706646197, -0.023036539644439233, -2.2878067552543797, 0.005773262290052329, 2.0479569244119857, 0.7606290224128299],
+            'center': [-0.013806841693426431, 0.11430030356041568, -0.014276523361211282, -2.4653910632050673, 0.02990387377474043, 2.585086940103107, 0.7522658954954738],
+            'capture': [-0.01776863430649565, -0.5752911768879806, -0.0014327665769906077, -2.4567381506938766, 0.005926176737607526, 1.8773310657562692, 0.7997468734019023],
+            'box1': [0.7731950474831923, 0.18092087803598036, 0.2100551255464722, -2.1853637098727723, 0.014617465191375212, 2.380719539162588, 0.2648497067805793],
+            'box2': [0.7737509407118746, 0.0013466285058570894, 0.5478241150755632, -2.415992416493514, 0.06459920577870473, 2.4111426511597047, 0.58313301555406],
+            'box3': [0.7729797377455772, -0.009179683106841089, 0.9030471085531765, -2.4429453251489983, 0.07182425998340045, 2.4800675805135977, 0.8934132201079438]
+        }
+    
+        if pose in joint_values:
+            jointinfo = {f'panda_joint{i+1}': value for i, value in enumerate(joint_values[pose])}
+            self.r.move_to_joint_positions(jointinfo)
+        else:
+            print("Invalid pose name. Please provide a valid pose name.")
 
     def nextmove(self, vec):
         """
