@@ -71,12 +71,15 @@ class MoveRobot(object):
             'grasp': [0.00005878003883383008, 0.17806044415005465, -0.017142348940958056, -2.481688746996297, -0.05318302649530643, 2.6947723936131105, 0.8231430976682204],
             'aftergrab': [-0.001017179476466228, 0.002690245226212858, -0.01736713095135724, -2.436764425393494, -0.051719546543227295, 2.4657612768544093, 0.818422098840582]
         }
-
         if pose in joint_values:
+            self.pub.publish("moving")
+
             jointinfo = {f'panda_joint{i+1}': value for i, value in enumerate(joint_values[pose])}
             self.r.move_to_joint_positions(jointinfo)
         else:
             print("Invalid pose name. Please provide a valid pose name.")
+        self.pub.publish("done moving")
+        print("moving to " + pose + " pose is done")
 
     def nextmove(self, vec):
         """
@@ -102,7 +105,7 @@ class MoveRobot(object):
         '''
         callback function for the topic cmd_manip2frarm
         '''
-        dataparse = data.data
+        dataparse = data.data.split('/')
         print(dataparse)
 
 
