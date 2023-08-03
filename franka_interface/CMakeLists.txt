@@ -137,6 +137,7 @@ catkin_install_python(PROGRAMS scripts/enable_robot.py
                                tests/grip_test.py
                                tests/demo_record.py
                                tests/capture_pose.py
+                               tests/ahmed_playground.py
                       DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 # ## Tools
 # include(${CMAKE_CURRENT_LIST_DIR}/../cmake/ClangTools.cmake OPTIONAL

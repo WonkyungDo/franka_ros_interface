@@ -58,28 +58,53 @@ class MoveRobot(object):
         self.qmax = self.r._joint_limits.position_upper
         self.qmin = self.r._joint_limits.position_lower
         self.vec = np.array([0,0,0,0,0,0])
+
+        self.frstatus = 'initial'
+        # self.currpipestatus = 'initial'
+        self.readyforgrasp = False
+        # the vector needed to move from the center 
+        self.vec_from_grasp = np.array([0,0,0])
+        self.successful = False
+        self.curstatus = 'initial'
+        self.vec_available = False
         IPython.embed()
 
-    def pose_run(self, pose):
+    def pose_run(self, pose, duration=0):
         joint_values = {
             'neutral': [-0.018547689576012733, -0.2461723706646197, -0.023036539644439233, -2.2878067552543797, 0.005773262290052329, 2.0479569244119857, 0.7606290224128299],
             'center': [-0.013806841693426431, 0.11430030356041568, -0.014276523361211282, -2.4653910632050673, 0.02990387377474043, 2.585086940103107, 0.7522658954954738],
             'capture': [-0.01776863430649565, -0.5752911768879806, -0.0014327665769906077, -2.4567381506938766, 0.005926176737607526, 1.8773310657562692, 0.7997468734019023],
-            'box1': [0.7731950474831923, 0.18092087803598036, 0.2100551255464722, -2.1853637098727723, 0.014617465191375212, 2.380719539162588, 0.2648497067805793],
-            'box2': [0.7737509407118746, 0.0013466285058570894, 0.5478241150755632, -2.415992416493514, 0.06459920577870473, 2.4111426511597047, 0.58313301555406],
-            'box3': [0.7729797377455772, -0.009179683106841089, 0.9030471085531765, -2.4429453251489983, 0.07182425998340045, 2.4800675805135977, 0.8934132201079438],
+            'box1': [0.6976792476564774, 0.45065160889792855, 0.08716649917120153, -1.7663375705919768, -0.07383622961574131, 2.2470173740122052, 0.04656762514677312],
+            'box2': [0.7725377335532392, 0.16653420756799234, 0.22172099309218554, -2.205174827469658, 0.010592421880547575, 2.3784225039354565, 0.1757087970810976],
+            'box3': [0.7727070963137602, -0.03463824415700166, 0.5786945239995922, -2.4362576980748902, 0.01455805613933333, 2.4299287694365623, 0.555845175874575],
+            'box4': [0.7728941871734121, -0.07289880408068003, 0.955941886768001, -2.4758297599323944, 0.07576545350419149, 2.4785794194274477, 0.8919297540107322],
             'grasp': [0.00005878003883383008, 0.17806044415005465, -0.017142348940958056, -2.481688746996297, -0.05318302649530643, 2.6947723936131105, 0.8231430976682204],
-            'aftergrab': [-0.001017179476466228, 0.002690245226212858, -0.01736713095135724, -2.436764425393494, -0.051719546543227295, 2.4657612768544093, 0.818422098840582]
+            'aftergrasp': [-0.0016761922470845772, -0.06999154459907297, -0.014768976935038439, -2.4174162306003124, -0.05054804146502407, 2.3781315548956417, 0.817137545063884],
         }
+
+        start_time = rospy.Time.now()
+        while (rospy.Time.now() - start_time) < rospy.Duration(duration):
+            rospy.sleep(0.1)
+
+
         if pose in joint_values:
-            self.pub.publish("moving")
+            self.pub.publish("moving/0")
 
             jointinfo = {f'panda_joint{i+1}': value for i, value in enumerate(joint_values[pose])}
             self.r.move_to_joint_positions(jointinfo)
+            print("moving to " + pose + " pose is done")
+
         else:
             print("Invalid pose name. Please provide a valid pose name.")
-        self.pub.publish("done moving")
-        print("moving to " + pose + " pose is done")
+            print("invalid name: "+ pose)
+        self.pub.publish(pose + '/0')
+        self.curstatus = pose
+        ########## when changing the curstatus from capture, 
+        if self.curstatus == 'capture':
+            term = 3
+            print(f'give time to get pointcloud data ({term}sec)')
+            rospy.sleep(term)
+            self.readyforgrasp = True
 
     def nextmove(self, vec):
         """
@@ -87,7 +112,6 @@ class MoveRobot(object):
         vec_pos : vec (1,0,0) corresponds to moving in x direction about 4.41cm. with the calculation, now changing unit as cm
         """ 
         vec = vec / 4.41
-
         curr_eepos = np.asarray(self.r.endpoint_pose()['position'])
         curr_jtstate = [v for v in self.r.joint_angles().values()]
         desired_eepos = curr_eepos + vec
@@ -107,16 +131,56 @@ class MoveRobot(object):
         '''
         dataparse = data.data.split('/')
         print(dataparse)
+        if len(dataparse) ==2:
+            self.pose_run(dataparse[0], float(dataparse[1]))
+        else:
+            self.pose_run(dataparse[0])
+
+
 
 
     def callback_pt(self, data):
         '''
         callback function for the topic camera/depth/color/points
         '''
-        self.pointcloud = data
-        print('get pointcloud')
+        if self.curstatus == 'capture' and self.readyforgrasp == True:
+            self.pointcloud = data.data
+            self.vec_from_grasp = self.ptcloud_filtering_ftn()
+        if self.curstatus == 'grasp' and self.readyforgrasp == True:
+            if self.vec_available: 
 
+                self.nextmove(self.vec_from_grasp)
+                print("moving done!!!")
+                print("moving done!!!")
+                print("moving done!!!")
+                self.pub.publish("graspmovedone/1")
+            self.readyforgrasp = False
 
+            return 
+        else:
+            pass
+        # print('get pointcloud')
+
+    def ptcloud_filtering_ftn(self):
+        """
+        Ahmed's implementation for filtering the pointcloud data
+         and get the maximum depth point in z axis
+        """
+        print("assuming it's done")
+        self.successful = True
+        vec_from_grasp = np.array([1,0,0])
+        #should not be bigger / lesser than +-1
+        vec_from_grasp = np.clip(vec_from_grasp, -1, 1)
+
+        # if it's available, return true, if not, make it false and return number 2 for regrasp
+        if self.successful:
+            self.vec_available = True
+            self.pub.publish("capture/1")
+        else:
+            self.vec_available = False
+            self.pub.publish("capture/2")
+
+        return vec_from_grasp
 
 
 def next_joint(jac, curr_eepos, curr_jtstate, desired_eepos, q_min, q_max, lambda_ = 0.1, Kp_=1):
@@ -134,14 +198,12 @@ def next_joint(jac, curr_eepos, curr_jtstate, desired_eepos, q_min, q_max, lambd
 
     pos_error[:3] = desired_eepos - curr_eepos
 
-
     # pos_error = np.zeros(3)
     # pos_error = -p_desired + p_current
 
     # Task space control to get desired velocity
 
     v_desired = Kp_ * pos_error
-
 
     # minimize the movement of the joint angles
     joint_limit_penalty = 0.1 * (curr_jtstate - q_min) * (curr_jtstate - q_max)
