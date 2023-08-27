@@ -246,7 +246,7 @@ class MoveRobot(object):
             print(mean)
             vec_from_grasp[0] = -(minmean[1] + 0.062)* 100.
             vec_from_grasp[1] = -minmean[0] * 100.
-            vec_from_grasp[2] = 0
+            vec_from_grasp[2] = (minmean[2] - 0.63)*100.
             # rotate the vector to the direction of the point, which should be in 0~90 degree
             rotateang = np.arctan2(vec_from_grasp[0], vec_from_grasp[1]) / np.pi * 180
             rotateang = rotateang - 180 if rotateang > 90 else rotateang + 180 if rotateang < -90 else rotateang
